@@ -84,6 +84,34 @@ describe("assertCatalog", () => {
     })).toThrow("updates[1].id");
   });
 
+  it("拒绝更新记录中的无效日历日期", () => {
+    const invalidUpdates = [
+      { ...updates[0], effectiveAt: "2026-02-30" },
+      ...updates.slice(1),
+    ];
+
+    expect(() => assertCatalog({
+      providers: catalogProviders,
+      models,
+      exchangeRates,
+      updates: invalidUpdates,
+    })).toThrow("updates[0].effectiveAt");
+  });
+
+  it("拒绝更新记录中的非零填充日期", () => {
+    const invalidUpdates = [
+      { ...updates[0], verifiedAt: "2026-8-6" },
+      ...updates.slice(1),
+    ];
+
+    expect(() => assertCatalog({
+      providers: catalogProviders,
+      models,
+      exchangeRates,
+      updates: invalidUpdates,
+    })).toThrow("updates[0].verifiedAt");
+  });
+
   it.each([
     ["displayName", ""],
     ["apiModelId", ""],

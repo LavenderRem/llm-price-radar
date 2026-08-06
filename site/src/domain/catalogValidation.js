@@ -154,6 +154,8 @@ export function assertCatalog({ providers, models, exchangeRates, updates }) {
       if (updateIds.has(update.id)) throw new Error(`updates[${updateIndex}].id`);
       updateIds.add(update.id);
       if (!modelIds.has(update.modelId)) throw new Error(`updates[${updateIndex}].modelId`);
+      validDate(update.effectiveAt, `updates[${updateIndex}].effectiveAt`);
+      validDate(update.verifiedAt, `updates[${updateIndex}].verifiedAt`);
     }
   }
 
