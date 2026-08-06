@@ -1,14 +1,17 @@
 import { useState } from "react";
 import Info from "lucide-react/dist/esm/icons/info.mjs";
 import { AppHeader } from "./components/AppHeader.jsx";
+import { ComparisonTray } from "./components/ComparisonTray.jsx";
+import { ComparisonView } from "./components/ComparisonView.jsx";
 import { EmptyState } from "./components/EmptyState.jsx";
 import { FilterBar } from "./components/FilterBar.jsx";
 import { PricingTable } from "./components/PricingTable.jsx";
 import { models, providers } from "./data/catalog.js";
 import { exchangeRates } from "./data/exchangeRates.js";
+import { toggleComparison } from "./domain/comparison.js";
 import { filterAndSortModels } from "./domain/filters.js";
 import { normalizeModel } from "./domain/pricing.js";
-import { parseUrlState } from "./domain/urlState.js";
+import { parseUrlState, serializeUrlState } from "./domain/urlState.js";
 import { useUrlState } from "./hooks/useUrlState.js";
 
 const filterDefaults = {
@@ -22,6 +25,8 @@ const filterDefaults = {
 
 export function App() {
   const [view, setView] = useState("pricing");
+  const [comparisonOpen, setComparisonOpen] = useState(false);
+  const [comparisonLimitReached, setComparisonLimitReached] = useState(false);
   const [state, setState] = useUrlState(parseUrlState(window.location.search));
   const normalizedModels = models.map((model) => normalizeModel(model, state.currency, exchangeRates, providers));
   const visibleModels = filterAndSortModels(normalizedModels, state);
@@ -33,13 +38,34 @@ export function App() {
 
   const toggleCompare = (modelId) => {
     setState((current) => {
-      const selected = current.compareIds.includes(modelId);
-      const compareIds = selected
-        ? current.compareIds.filter((id) => id !== modelId)
-        : [...current.compareIds, modelId].slice(0, 3);
-      return { ...current, compareIds };
+      const result = toggleComparison(current.compareIds, modelId);
+      setComparisonLimitReached(result.limitReached);
+      return { ...current, compareIds: result.ids };
     });
   };
+
+  const removeFromComparison = (modelId) => {
+    setState((current) => ({
+      ...current,
+      compareIds: current.compareIds.filter((id) => id !== modelId),
+    }));
+    setComparisonLimitReached(false);
+  };
+
+  const copyComparisonLink = async () => {
+    if (!navigator.clipboard?.writeText) return false;
+    const url = `${window.location.origin}${window.location.pathname}${serializeUrlState(state)}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const selectedModels = state.compareIds
+    .map((id) => normalizedModels.find((model) => model.id === id))
+    .filter(Boolean);
 
   const changeSort = (sortBy) => {
     setState((current) => ({
@@ -93,14 +119,16 @@ export function App() {
           </section>
 
           <aside className="comparison-slot" aria-label="对比区域">
-            <button className="compare-cta" type="button">
+            <button className="compare-cta" type="button" onClick={() => setComparisonOpen(true)}>
               加入对比（{state.compareIds.length}）
             </button>
-            <div className="comparison-placeholder">
-              <strong>对比清单</strong>
-              <span>{state.compareIds.length}/3</span>
-              <p>选择模型后将在这里展示对比清单。</p>
-            </div>
+            {comparisonLimitReached ? <p className="comparison-limit" role="status">最多选择 3 个模型</p> : null}
+            <ComparisonTray
+              models={normalizedModels}
+              selectedIds={state.compareIds}
+              onRemove={removeFromComparison}
+              onOpenComparison={() => setComparisonOpen(true)}
+            />
           </aside>
         </main>
       ) : (
@@ -108,6 +136,17 @@ export function App() {
           <p>{view === "calculator" ? "成本估算" : "更新记录"}</p>
         </main>
       )}
+      {comparisonOpen ? (
+        <div className="comparison-overlay">
+          <ComparisonView
+            models={selectedModels}
+            currency={state.currency}
+            onClose={() => setComparisonOpen(false)}
+            onRemove={removeFromComparison}
+            onCopyLink={copyComparisonLink}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }
