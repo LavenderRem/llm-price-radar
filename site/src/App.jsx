@@ -3,6 +3,7 @@ import Info from "lucide-react/dist/esm/icons/info.mjs";
 import { AppHeader } from "./components/AppHeader.jsx";
 import { ComparisonTray } from "./components/ComparisonTray.jsx";
 import { ComparisonView } from "./components/ComparisonView.jsx";
+import { CostEstimator } from "./components/CostEstimator.jsx";
 import { EmptyState } from "./components/EmptyState.jsx";
 import { FilterBar } from "./components/FilterBar.jsx";
 import { PricingTable } from "./components/PricingTable.jsx";
@@ -73,6 +74,20 @@ export function App() {
   const copyComparisonLink = async () => {
     if (!navigator.clipboard?.writeText) return false;
     const url = `${window.location.origin}${window.location.pathname}${serializeUrlState(state)}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const copyEstimateLink = async (estimate) => {
+    if (!navigator.clipboard?.writeText) return false;
+    const url = `${window.location.origin}${window.location.pathname}${serializeUrlState({
+      ...state,
+      estimate: JSON.stringify(estimate),
+    })}`;
     try {
       await navigator.clipboard.writeText(url);
       return true;
@@ -156,6 +171,13 @@ export function App() {
             />
           </aside>
         </main>
+      ) : view === "calculator" ? (
+        <CostEstimator
+          models={models}
+          selectedIds={state.compareIds}
+          currency={state.currency}
+          onShare={copyEstimateLink}
+        />
       ) : (
         <main className="future-view-slot">
           <p>{view === "calculator" ? "成本估算" : "更新记录"}</p>

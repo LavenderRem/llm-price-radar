@@ -41,6 +41,7 @@ export function parseUrlState(search) {
     currency: currency(params.get("currency")),
     compareIds: compareIds(split(params.get("compare"))),
     detailId: params.get("detail") ?? "",
+    estimate: params.get("estimate") ?? "",
   };
 }
 
@@ -61,6 +62,7 @@ export function serializeUrlState(state) {
   params.set("currency", currency(state.currency));
   if (selectedCompareIds.length) params.set("compare", selectedCompareIds.join(","));
   if (state.detailId) params.set("detail", state.detailId);
+  if (state.estimate) params.set("estimate", state.estimate);
 
   return `?${params.toString()}`;
 }
