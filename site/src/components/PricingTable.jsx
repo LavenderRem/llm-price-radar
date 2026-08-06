@@ -147,8 +147,8 @@ export function PricingTable({
             <col className="context-column" />
             <col className="price-column" />
             <col className="price-column" />
-            <col className="price-column cached-column" />
-            <col className="discount-column" />
+            <col className="price-column cached-column column-secondary" />
+            <col className="discount-column column-secondary" />
             <col className="effective-column" />
             <col className="source-column" />
           </colgroup>
@@ -166,8 +166,8 @@ export function PricingTable({
                 <SortButton field="output" label="输出价格" {...{ sortBy, sortDirection, onSort }} />
                 <span className="column-unit">每百万 Token</span>
               </th>
-              <th scope="col">缓存输入<span className="column-unit">每百万 Token</span></th>
-              <th scope="col">批量折扣<span className="column-unit">输入 / 输出</span></th>
+              <th className="column-secondary" scope="col">缓存输入<span className="column-unit">每百万 Token</span></th>
+              <th className="column-secondary" scope="col">批量折扣<span className="column-unit">输入 / 输出</span></th>
               <th scope="col" aria-sort={sortBy === "blended" ? `${sortDirection}ending` : "none"}>
                 <SortButton field="blended" label="有效价格" {...{ sortBy, sortDirection, onSort }} />
                 <span className="column-unit">输入 / 输出</span>
@@ -194,8 +194,8 @@ export function PricingTable({
                   <td className="context-value">{formatContext(model.contextWindow)}</td>
                   <td><Price value={model.normalized.input} currency={currency} barMax={maxInput} /></td>
                   <td><Price value={model.normalized.output} currency={currency} barMax={maxOutput} /></td>
-                  <td><Price value={model.normalized.cachedInput} currency={currency} accent barMax={maxCached} /></td>
-                  <td>{discount ? <span className="discount-value">{discount}</span> : <span className="unpublished">未公开</span>}</td>
+                  <td className="column-secondary"><Price value={model.normalized.cachedInput} currency={currency} accent barMax={maxCached} /></td>
+                  <td className="column-secondary">{discount ? <span className="discount-value">{discount}</span> : <span className="unpublished">未公开</span>}</td>
                   <td><PricePair normalized={model.normalized} currency={currency} /></td>
                   <td>
                     <a className="source-link" href={model.pricing[0].sourceUrl} target="_blank" rel="noreferrer">
@@ -208,7 +208,7 @@ export function PricingTable({
             })}
           </tbody>
         </table>
-        <footer className="table-footer">共 {models.length} 个模型</footer>
+        <footer className="table-footer" aria-live="polite">共 {models.length} 个模型</footer>
       </div>
 
       <ul className="mobile-model-list" aria-label="模型价格摘要">

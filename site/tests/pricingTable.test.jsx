@@ -69,6 +69,23 @@ describe("PricingTable", () => {
     expect(screen.getAllByRole("button", { name: /查看 Model 1 详情/ }).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/每百万 Token/).length).toBeGreaterThan(0);
   });
+
+  it("将当前模型数量作为礼貌播报区域", () => {
+    render(
+      <PricingTable
+        models={[model]}
+        currency="CNY"
+        selectedIds={[]}
+        onToggleCompare={() => {}}
+        onOpenDetail={() => {}}
+        sortBy="input"
+        sortDirection="asc"
+        onSort={() => {}}
+      />,
+    );
+
+    expect(screen.getByText("共 1 个模型")).toHaveAttribute("aria-live", "polite");
+  });
 });
 
 describe("FilterBar", () => {
@@ -105,6 +122,39 @@ describe("FilterBar", () => {
     onChange.mockClear();
     fireEvent.click(screen.getByRole("checkbox", { name: "OpenAI" }));
     expect(onChange).toHaveBeenCalledWith({ providers: ["openai"] });
+  });
+
+  it("移动筛选面板支持命名、焦点管理和 Escape 关闭", async () => {
+    const user = userEvent.setup();
+    render(
+      <FilterBar
+        state={{
+          query: "",
+          providers: [],
+          capabilities: [],
+          minContext: 0,
+          hasCache: false,
+          hasBatch: false,
+        }}
+        providers={[{ id: "openai", name: "OpenAI" }]}
+        onChange={() => {}}
+        onClear={() => {}}
+      />,
+    );
+
+    expect(screen.getByRole("group", { name: "服务商" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "模型类型" })).toBeInTheDocument();
+
+    const trigger = screen.getByRole("button", { name: "打开筛选" });
+    await user.click(trigger);
+
+    const dialog = screen.getByRole("dialog", { name: "筛选模型" });
+    expect(dialog).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "关闭筛选" })).toHaveFocus();
+
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog", { name: "筛选模型" })).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
   });
 });
 
