@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 import { App } from "../src/App.jsx";
@@ -82,6 +82,40 @@ it("允许从对比清单移除模型", async () => {
   expect(onRemove).toHaveBeenCalledWith("a");
 });
 
+it("空对比时禁用打开入口", () => {
+  render(<App />);
+
+  const trigger = screen.getByRole("button", { name: "加入对比（0）" });
+  expect(trigger).toHaveAttribute("aria-disabled", "true");
+  expect(screen.queryByRole("button", { name: "查看对比详情" })).not.toBeInTheDocument();
+  fireEvent.click(trigger);
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+});
+
+it("对比清单提供可操作的成本估算入口", async () => {
+  const onOpenCost = vi.fn();
+  render(
+    <ComparisonTray
+      models={selectedModels}
+      selectedIds={["a"]}
+      onRemove={() => {}}
+      onOpenComparison={() => {}}
+      onOpenCost={onOpenCost}
+    />,
+  );
+
+  await userEvent.click(screen.getByRole("button", { name: "前往成本估算" }));
+  expect(onOpenCost).toHaveBeenCalledOnce();
+});
+
+it("从对比清单可进入成本估算视图", async () => {
+  window.history.replaceState(null, "", "?compare=openai-gpt-5-6-terra");
+  render(<App />);
+
+  await userEvent.click(screen.getByRole("button", { name: "前往成本估算" }));
+  expect(screen.getAllByText("成本估算").length).toBeGreaterThan(1);
+});
+
 it("展示完整价格字段并在复制成功后给出状态", async () => {
   render(
     <ComparisonView
@@ -118,6 +152,60 @@ it("打开对比视图时将焦点置于关闭按钮", () => {
   );
 
   expect(screen.getByRole("button", { name: "关闭对比" })).toHaveFocus();
+});
+
+it("对比弹层拦截 Tab、支持 Escape 关闭", () => {
+  const onClose = vi.fn();
+  render(
+    <ComparisonView
+      models={selectedModels}
+      currency="CNY"
+      onClose={onClose}
+      onRemove={() => {}}
+      onCopyLink={() => Promise.resolve(true)}
+    />,
+  );
+
+  const closeButton = screen.getByRole("button", { name: "关闭对比" });
+  const copyButton = screen.getByRole("button", { name: "复制对比链接" });
+  fireEvent.keyDown(document, { key: "Tab", shiftKey: true });
+  expect(copyButton).toHaveFocus();
+  fireEvent.keyDown(document, { key: "Tab" });
+  expect(closeButton).toHaveFocus();
+  fireEvent.keyDown(document, { key: "Escape" });
+  expect(onClose).toHaveBeenCalledOnce();
+});
+
+it("关闭或移除最后一个模型时收起弹层并恢复入口焦点", async () => {
+  window.history.replaceState(null, "", "?compare=openai-gpt-5-6-terra");
+  render(<App />);
+
+  const trigger = screen.getByRole("button", { name: "加入对比（1）" });
+  await userEvent.click(trigger);
+  fireEvent.keyDown(document, { key: "Escape" });
+  expect(trigger).toHaveFocus();
+
+  await userEvent.click(trigger);
+  await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "移除 GPT-5.6 Terra" }));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(trigger).toHaveAttribute("aria-disabled", "true");
+  expect(trigger).toHaveFocus();
+});
+
+it("复制失败和最低价标签都会向用户说明状态", async () => {
+  render(
+    <ComparisonView
+      models={selectedModels}
+      currency="CNY"
+      onClose={() => {}}
+      onRemove={() => {}}
+      onCopyLink={() => Promise.resolve(false)}
+    />,
+  );
+
+  expect(screen.getAllByText("当前最低价")).toHaveLength(3);
+  await userEvent.click(screen.getByRole("button", { name: "复制对比链接" }));
+  expect(await screen.findByRole("status")).toHaveTextContent("无法复制链接");
 });
 
 it("复制的对比链接可恢复三个已选模型", async () => {

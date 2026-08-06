@@ -39,6 +39,7 @@ function ComparisonRow({ label, models, children }) {
 export function ComparisonView({ models, currency, onClose, onRemove, onCopyLink }) {
   const [copyMessage, setCopyMessage] = useState("");
   const closeButtonRef = useRef(null);
+  const dialogRef = useRef(null);
   const minInput = minimum(models, "input");
   const minOutput = minimum(models, "output");
   const minCached = minimum(models, "cachedInput");
@@ -52,8 +53,34 @@ export function ComparisonView({ models, currency, onClose, onRemove, onCopyLink
     closeButtonRef.current?.focus();
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+      if (event.key !== "Tab") return;
+
+      const focusable = [...dialogRef.current.querySelectorAll("button:not([disabled]), a[href]")];
+      const first = focusable[0];
+      const last = focusable.at(-1);
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   return (
     <section
+      ref={dialogRef}
       className="comparison-view"
       role="dialog"
       aria-modal="true"

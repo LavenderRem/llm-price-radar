@@ -215,6 +215,11 @@ a:focus-visible {
   font-weight: 700;
 }
 
+.compare-cta[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .comparison-limit {
   margin: 10px 0 0;
   color: #a85019;
@@ -301,8 +306,13 @@ a:focus-visible {
 }
 
 .comparison-cost-summary {
+  display: block;
+  padding: 0;
   margin: 12px 0;
   font-size: 12px;
+  text-align: left;
+  background: transparent;
+  border: 0;
 }
 
 .comparison-open,

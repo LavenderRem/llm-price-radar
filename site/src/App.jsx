@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Info from "lucide-react/dist/esm/icons/info.mjs";
 import { AppHeader } from "./components/AppHeader.jsx";
 import { ComparisonTray } from "./components/ComparisonTray.jsx";
@@ -27,6 +27,8 @@ export function App() {
   const [view, setView] = useState("pricing");
   const [comparisonOpen, setComparisonOpen] = useState(false);
   const [comparisonLimitReached, setComparisonLimitReached] = useState(false);
+  const comparisonTriggerRef = useRef(null);
+  const comparisonCtaRef = useRef(null);
   const [state, setState] = useUrlState(parseUrlState(window.location.search));
   const normalizedModels = models.map((model) => normalizeModel(model, state.currency, exchangeRates, providers));
   const visibleModels = filterAndSortModels(normalizedModels, state);
@@ -45,11 +47,27 @@ export function App() {
   };
 
   const removeFromComparison = (modelId) => {
+    const removingLastModel = state.compareIds.length === 1 && state.compareIds[0] === modelId;
     setState((current) => ({
       ...current,
       compareIds: current.compareIds.filter((id) => id !== modelId),
     }));
     setComparisonLimitReached(false);
+    if (removingLastModel) {
+      setComparisonOpen(false);
+      comparisonCtaRef.current?.focus();
+    }
+  };
+
+  const openComparison = (event) => {
+    if (state.compareIds.length === 0) return;
+    comparisonTriggerRef.current = event.currentTarget;
+    setComparisonOpen(true);
+  };
+
+  const closeComparison = () => {
+    setComparisonOpen(false);
+    (comparisonTriggerRef.current?.isConnected ? comparisonTriggerRef.current : comparisonCtaRef.current)?.focus();
   };
 
   const copyComparisonLink = async () => {
@@ -119,7 +137,13 @@ export function App() {
           </section>
 
           <aside className="comparison-slot" aria-label="对比区域">
-            <button className="compare-cta" type="button" onClick={() => setComparisonOpen(true)}>
+            <button
+              ref={comparisonCtaRef}
+              className="compare-cta"
+              type="button"
+              aria-disabled={state.compareIds.length === 0}
+              onClick={openComparison}
+            >
               加入对比（{state.compareIds.length}）
             </button>
             {comparisonLimitReached ? <p className="comparison-limit" role="status">最多选择 3 个模型</p> : null}
@@ -127,7 +151,8 @@ export function App() {
               models={normalizedModels}
               selectedIds={state.compareIds}
               onRemove={removeFromComparison}
-              onOpenComparison={() => setComparisonOpen(true)}
+              onOpenComparison={openComparison}
+              onOpenCost={() => setView("calculator")}
             />
           </aside>
         </main>
@@ -141,7 +166,7 @@ export function App() {
           <ComparisonView
             models={selectedModels}
             currency={state.currency}
-            onClose={() => setComparisonOpen(false)}
+            onClose={closeComparison}
             onRemove={removeFromComparison}
             onCopyLink={copyComparisonLink}
           />

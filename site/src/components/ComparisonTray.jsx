@@ -4,7 +4,7 @@ function formatPrice(value, currency) {
   return `${symbol}${value.toFixed(value < 0.1 ? 3 : 2)}`;
 }
 
-export function ComparisonTray({ models, selectedIds, onRemove, onOpenComparison }) {
+export function ComparisonTray({ models, selectedIds, onRemove, onOpenComparison, onOpenCost }) {
   const modelById = new Map(models.map((model) => [model.id, model]));
   const selectedModels = selectedIds.map((id) => modelById.get(id)).filter(Boolean);
 
@@ -35,7 +35,9 @@ export function ComparisonTray({ models, selectedIds, onRemove, onOpenComparison
               </li>
             ))}
           </ul>
-          <p className="comparison-cost-summary">在成本估算中查看月成本摘要</p>
+          <button className="comparison-cost-summary" type="button" onClick={onOpenCost}>
+            前往成本估算
+          </button>
           <button className="comparison-open" type="button" onClick={onOpenComparison}>
             查看对比详情
           </button>
