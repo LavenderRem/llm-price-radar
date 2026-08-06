@@ -1,0 +1,21 @@
+:root {
+  color-scheme: light;
+  --bg: #f7f9fc;
+  --surface: #ffffff;
+  --text: #10233f;
+  --muted: #6f7d91;
+  --line: #dfe5ed;
+  --primary: #2979ff;
+  --accent: #1bc6c2;
+  --danger: #e35656;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --font-ui: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-number: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+}
