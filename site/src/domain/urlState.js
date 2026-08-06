@@ -1,8 +1,9 @@
 const sortKeys = ["input", "output", "blended"];
 const currencies = ["CNY", "USD"];
 
-function split(value) {
-  return value ? [...new Set(value.split(",").filter(Boolean))] : [];
+function split(value, deduplicate = true) {
+  const items = value ? value.split(",").filter(Boolean) : [];
+  return deduplicate ? [...new Set(items)] : items;
 }
 
 function positiveNumber(value) {
@@ -41,7 +42,7 @@ export function parseUrlState(search) {
     sortBy: sortBy(params.get("sort")),
     sortDirection: params.get("direction") === "desc" ? "desc" : "asc",
     currency: currency(params.get("currency")),
-    compareIds: split(params.get("compare")),
+    compareIds: split(params.get("compare"), false),
     detailId: params.get("detail") ?? "",
   };
 }

@@ -12,16 +12,32 @@ export function sanitizeComparisonIds(selectedIds, models) {
     .map((model) => model.id));
   const seen = new Set();
   const ids = [];
-  let removedCount = 0;
+  let invalidCount = 0;
+  let overflowCount = 0;
+  let duplicatesRemoved = 0;
 
   for (const id of selectedIds) {
-    if (!activeIds.has(id) || seen.has(id) || ids.length >= 3) {
-      removedCount += 1;
+    if (!activeIds.has(id)) {
+      invalidCount += 1;
+      continue;
+    }
+    if (seen.has(id)) {
+      duplicatesRemoved += 1;
       continue;
     }
     seen.add(id);
+    if (ids.length >= 3) {
+      overflowCount += 1;
+      continue;
+    }
     ids.push(id);
   }
 
-  return { ids, removedCount };
+  return {
+    ids,
+    invalidCount,
+    overflowCount,
+    duplicatesRemoved,
+    normalizedChanged: invalidCount + overflowCount + duplicatesRemoved > 0,
+  };
 }

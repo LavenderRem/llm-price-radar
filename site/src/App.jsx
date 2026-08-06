@@ -34,8 +34,19 @@ function sanitizeUrlComparisonState(state) {
   const sanitized = sanitizeComparisonIds(state.compareIds, models);
   return {
     state: { ...state, compareIds: sanitized.ids },
-    removedCompareCount: sanitized.removedCount,
+    ...sanitized,
   };
+}
+
+function comparisonCleanupMessage({ invalidCount, overflowCount }) {
+  const messages = [];
+  if (invalidCount > 0) {
+    messages.push(`链接中的 ${invalidCount} 个模型已不可用，已忽略`);
+  }
+  if (overflowCount > 0) {
+    messages.push(`最多选择 3 个模型，已忽略 ${overflowCount} 个超额模型`);
+  }
+  return messages.join("；");
 }
 
 export function App() {
@@ -51,14 +62,12 @@ export function App() {
     initialStateRef.current = sanitizeUrlComparisonState(parseUrlState(window.location.search));
   }
   const [invalidCompareMessage, setInvalidCompareMessage] = useState(() => {
-    const count = initialStateRef.current.removedCompareCount;
-    return count > 0 ? `链接中的 ${count} 个模型已不可用，已忽略` : "";
+    return comparisonCleanupMessage(initialStateRef.current);
   });
   const restoreUrlState = useCallback((restored) => {
     const sanitized = sanitizeUrlComparisonState(restored);
-    const count = sanitized.removedCompareCount;
-    setInvalidCompareMessage(count > 0 ? `链接中的 ${count} 个模型已不可用，已忽略` : "");
-    return { state: sanitized.state, changed: count > 0 };
+    setInvalidCompareMessage(comparisonCleanupMessage(sanitized));
+    return { state: sanitized.state, changed: sanitized.normalizedChanged };
   }, []);
   const [state, setState] = useUrlState(initialStateRef.current.state, restoreUrlState);
   const normalizedModels = models.map((model) => normalizeModel(model, state.currency, exchangeRates, providers));

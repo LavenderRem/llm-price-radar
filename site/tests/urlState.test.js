@@ -45,9 +45,9 @@ it("为未知币种和排序字段回退，并为省略数组提供默认值", (
     .toEqual(defaults);
 });
 
-it("解析时去重但保留全部对比候选，供目录校验后再限制", () => {
+it("解析时保留全部对比候选与重复项，供目录清洗后再限制", () => {
   expect(parseUrlState("?compare=a,b,a,c,d").compareIds)
-    .toEqual(["a", "b", "c", "d"]);
+    .toEqual(["a", "b", "a", "c", "d"]);
 });
 
 it("序列化时去重并限制三个对比模型", () => {

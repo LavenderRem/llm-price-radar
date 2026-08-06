@@ -46,7 +46,13 @@ it("初始化时忽略未知和非在售模型，不让它们占用三个名额"
       { id: "retired-a", status: "retired" },
       { id: "active-b", status: "active" },
     ],
-  )).toEqual({ ids: ["active-a", "active-b"], removedCount: 3 });
+  )).toEqual({
+    ids: ["active-a", "active-b"],
+    invalidCount: 3,
+    overflowCount: 0,
+    duplicatesRemoved: 0,
+    normalizedChanged: true,
+  });
 });
 
 it("有效模型位于三个未知 ID 之后时仍能通过目录校验保留", () => {
@@ -56,7 +62,10 @@ it("有效模型位于三个未知 ID 之后时仍能通过目录校验保留", 
 
   expect(sanitizeComparisonIds(parsed.compareIds, catalogModels)).toEqual({
     ids: ["openai-gpt-5-6-terra"],
-    removedCount: 3,
+    invalidCount: 3,
+    overflowCount: 0,
+    duplicatesRemoved: 0,
+    normalizedChanged: true,
   });
 });
 
@@ -71,7 +80,23 @@ it("部分未知 ID 与四个有效 ID 混合时先校验再保留前三个有�
       "openai-gpt-5-6-luna",
       "anthropic-claude-opus-5",
     ],
-    removedCount: 2,
+    invalidCount: 1,
+    overflowCount: 1,
+    duplicatesRemoved: 0,
+    normalizedChanged: true,
+  });
+});
+
+it("单独统计重复的有效模型并标记 URL 需要规范化", () => {
+  expect(sanitizeComparisonIds(
+    ["openai-gpt-5-6-terra", "openai-gpt-5-6-terra"],
+    catalogModels,
+  )).toEqual({
+    ids: ["openai-gpt-5-6-terra"],
+    invalidCount: 0,
+    overflowCount: 0,
+    duplicatesRemoved: 1,
+    normalizedChanged: true,
   });
 });
 
@@ -106,6 +131,36 @@ it.each([
   expect(catalogModels.some((model) => model.id === "unknown-a")).toBe(false);
 });
 
+it("初始链接含四个有效模型时只提示三模型上限", async () => {
+  window.history.replaceState(
+    null,
+    "",
+    "?compare=openai-gpt-5-6-terra,openai-gpt-5-6-luna,anthropic-claude-opus-5,anthropic-claude-sonnet-5",
+  );
+  render(<App />);
+
+  expect(screen.getByRole("button", { name: "加入对比（3）" })).toBeInTheDocument();
+  const status = await screen.findByRole("status");
+  expect(status).toHaveTextContent("最多选择 3 个模型，已忽略 1 个超额模型");
+  expect(status).not.toHaveTextContent("不可用");
+  expect(new URLSearchParams(window.location.search).get("compare"))
+    .toBe("openai-gpt-5-6-terra,openai-gpt-5-6-luna,anthropic-claude-opus-5");
+});
+
+it("初始链接混合一个未知与四个有效模型时分别说明无效和超额数量", async () => {
+  window.history.replaceState(
+    null,
+    "",
+    "?compare=unknown-a,openai-gpt-5-6-terra,openai-gpt-5-6-luna,anthropic-claude-opus-5,anthropic-claude-sonnet-5",
+  );
+  render(<App />);
+
+  const status = await screen.findByRole("status");
+  expect(status).toHaveTextContent("链接中的 1 个模型已不可用，已忽略");
+  expect(status).toHaveTextContent("最多选择 3 个模型，已忽略 1 个超额模型");
+  expect(screen.getByRole("button", { name: "加入对比（3）" })).toBeInTheDocument();
+});
+
 it("popstate 恢复时清洗未知模型、替换当前 URL 且不新增历史记录", async () => {
   window.history.replaceState(null, "", "?compare=openai-gpt-5-6-terra");
   render(<App />);
@@ -128,6 +183,34 @@ it("popstate 恢复时清洗未知模型、替换当前 URL 且不新增历史�
   expect(screen.getByRole("status")).toHaveTextContent("链接中的 2 个模型已不可用，已忽略");
   expect(new URLSearchParams(window.location.search).get("compare"))
     .toBe("openai-gpt-5-6-luna");
+  expect(pushSpy).not.toHaveBeenCalled();
+  expect(replaceSpy).toHaveBeenCalledOnce();
+
+  pushSpy.mockRestore();
+  replaceSpy.mockRestore();
+});
+
+it("popstate 恢复纯重复有效 ID 时静默规范化 URL 且不新增历史记录", async () => {
+  window.history.replaceState(null, "", "?compare=openai-gpt-5-6-terra");
+  render(<App />);
+  const pushSpy = vi.spyOn(window.history, "pushState");
+  const replaceSpy = vi.spyOn(window.history, "replaceState");
+
+  act(() => {
+    window.history.pushState(
+      null,
+      "",
+      "?compare=openai-gpt-5-6-terra,openai-gpt-5-6-terra,openai-gpt-5-6-luna",
+    );
+    pushSpy.mockClear();
+    replaceSpy.mockClear();
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+
+  await waitFor(() => expect(screen.getByRole("button", { name: "加入对比（2）" })).toBeInTheDocument());
+  expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  expect(new URLSearchParams(window.location.search).get("compare"))
+    .toBe("openai-gpt-5-6-terra,openai-gpt-5-6-luna");
   expect(pushSpy).not.toHaveBeenCalled();
   expect(replaceSpy).toHaveBeenCalledOnce();
 
