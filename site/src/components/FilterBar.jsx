@@ -35,7 +35,7 @@ export function FilterBar({ state, providers, onChange, onClear }) {
         <input
           type="search"
           value={query}
-          placeholder="搜索模型 / 提供商"
+          placeholder="例如：GPT-5"
           onChange={(event) => setQuery(event.target.value)}
         />
       </label>

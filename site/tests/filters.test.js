@@ -44,6 +44,20 @@ describe("filterAndSortModels", () => {
     expect(result.map((model) => model.id)).toEqual(["fast", "reason"]);
   });
 
+  it("按中文服务商名称搜索已标准化模型", () => {
+    const result = filterAndSortModels([
+      {
+        ...models[0],
+        id: "qwen",
+        providerId: "aliyun",
+        providerName: "阿里云百炼",
+        displayName: "Qwen Max",
+      },
+    ], { query: "百炼", sortBy: "input", sortDirection: "asc" });
+
+    expect(result.map((model) => model.id)).toEqual(["qwen"]);
+  });
+
   it("稳定排序，并始终把未公开价格放在最后", () => {
     const result = filterAndSortModels([
       { ...models[1], id: "same-first", normalized: { input: 1 } },

@@ -18,7 +18,7 @@ export function filterAndSortModels(models, state = {}) {
   return models
     .filter((model) => {
       const normalized = model.normalized ?? {};
-      const searchable = `${model.displayName ?? ""} ${model.apiModelId ?? ""} ${model.providerId ?? ""}`
+      const searchable = `${model.displayName ?? ""} ${model.apiModelId ?? ""} ${model.providerId ?? ""} ${model.providerName ?? ""}`
         .toLowerCase();
       const matchesQuery = !query || searchable.includes(query);
       const matchesProvider = !providers.length || providers.includes(model.providerId);

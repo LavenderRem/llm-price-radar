@@ -47,7 +47,8 @@ describe("PricingTable", () => {
 
     expect(onToggleCompare).toHaveBeenCalledWith("m1");
     expect(onSort).toHaveBeenCalledWith("input");
-    expect(inputSort).toHaveAttribute("aria-sort", "ascending");
+    expect(inputSort.closest("th")).toHaveAttribute("aria-sort", "ascending");
+    expect(inputSort).not.toHaveAttribute("aria-sort");
   });
 
   it("用文字标记未公开价格并保留模型详情入口", () => {

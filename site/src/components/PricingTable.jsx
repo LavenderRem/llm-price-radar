@@ -50,14 +50,10 @@ function Price({ value, currency, accent = false, barMax = 0 }) {
 
 function SortButton({ field, label, sortBy, sortDirection, onSort }) {
   const active = sortBy === field;
-  const ariaSort = active
-    ? (sortDirection === "asc" ? "ascending" : "descending")
-    : "none";
   return (
     <button
       className={active ? "sort-button is-active" : "sort-button"}
       type="button"
-      aria-sort={ariaSort}
       aria-label={`${label}${active ? (sortDirection === "asc" ? "，升序" : "，降序") : ""}`}
       onClick={() => onSort(field)}
     >
