@@ -1,10 +1,10 @@
 export const providers = [
-  { id: "openai", name: "OpenAI", billingCurrency: "USD", officialPricingUrl: "https://openai.com/api/pricing/" },
+  { id: "openai", name: "OpenAI", billingCurrency: "USD", officialPricingUrl: "https://developers.openai.com/api/docs/pricing" },
   { id: "anthropic", name: "Anthropic", billingCurrency: "USD", officialPricingUrl: "https://docs.anthropic.com/en/docs/about-claude/pricing" },
   { id: "google", name: "Google", billingCurrency: "USD", officialPricingUrl: "https://ai.google.dev/gemini-api/docs/pricing" },
   { id: "deepseek", name: "DeepSeek", billingCurrency: "CNY", officialPricingUrl: "https://api-docs.deepseek.com/quick_start/pricing" },
   { id: "aliyun", name: "阿里云百炼", billingCurrency: "CNY", officialPricingUrl: "https://help.aliyun.com/zh/model-studio/model-pricing" },
-  { id: "zhipu", name: "智谱", billingCurrency: "CNY", officialPricingUrl: "https://open.bigmodel.cn/" },
+  { id: "zhipu", name: "智谱开放平台", billingCurrency: "CNY", officialPricingUrl: "https://open.bigmodel.cn/" },
 ];
 
 export function defineModel(model) {
@@ -27,10 +27,10 @@ export const models = [
       verifiedAt,
       currency: "USD",
       unitTokens: 1000000,
-      input: 2.5,
-      cachedInput: 0.25,
-      cacheWrite: 3.125,
-      output: 15,
+      input: 2,
+      cachedInput: 0.2,
+      cacheWrite: 2.5,
+      output: 12,
       conditions: [
         "输入超过 272K Token 时，整次请求输入按 2 倍、输出按 1.5 倍计费",
         "cacheWrite 按未缓存输入价格的 1.25 倍计算",
@@ -51,10 +51,10 @@ export const models = [
       verifiedAt,
       currency: "USD",
       unitTokens: 1000000,
-      input: 1,
-      cachedInput: 0.1,
-      cacheWrite: 1.25,
-      output: 6,
+      input: 0.2,
+      cachedInput: 0.02,
+      cacheWrite: 0.25,
+      output: 1.2,
       conditions: [
         "输入超过 272K Token 时，整次请求输入按 2 倍、输出按 1.5 倍计费",
         "cacheWrite 按未缓存输入价格的 1.25 倍计算",

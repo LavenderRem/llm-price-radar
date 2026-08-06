@@ -4,15 +4,6 @@ import { exchangeRates } from "../src/data/exchangeRates.js";
 import { updates } from "../src/data/updates.js";
 import { assertCatalog } from "../src/domain/catalogValidation.js";
 
-const providers = [
-  { id: "openai", name: "OpenAI", billingCurrency: "USD", officialPricingUrl: "https://openai.com/api/pricing/" },
-  { id: "anthropic", name: "Anthropic", billingCurrency: "USD", officialPricingUrl: "https://docs.anthropic.com/en/docs/about-claude/pricing" },
-  { id: "google", name: "Google", billingCurrency: "USD", officialPricingUrl: "https://ai.google.dev/gemini-api/docs/pricing" },
-  { id: "deepseek", name: "DeepSeek", billingCurrency: "CNY", officialPricingUrl: "https://api-docs.deepseek.com/quick_start/pricing" },
-  { id: "aliyun", name: "阿里云百炼", billingCurrency: "CNY", officialPricingUrl: "https://help.aliyun.com/zh/model-studio/model-pricing" },
-  { id: "zhipu", name: "智谱", billingCurrency: "CNY", officialPricingUrl: "https://open.bigmodel.cn/" },
-];
-
 function replaceFirstModel(changes) {
   return [{ ...models[0], ...changes }, ...models.slice(1)];
 }
@@ -25,24 +16,72 @@ function replaceFirstPrice(changes) {
 
 describe("assertCatalog", () => {
   it("拒绝缺少官方来源的价格版本", () => {
-    const models = [{
-      id: "demo-model",
-      providerId: "openai",
-      displayName: "Demo",
-      apiModelId: "demo",
-      capabilities: ["text"],
-      contextWindow: 128000,
-      status: "active",
-      pricing: [{ currency: "USD", unitTokens: 1000000, input: 1, output: 4 }],
-    }];
-
-    expect(() => assertCatalog({ providers, models, exchangeRates: [] }))
+    expect(() => assertCatalog({
+      providers: catalogProviders,
+      models: replaceFirstPrice({ sourceUrl: undefined }),
+      exchangeRates,
+    }))
       .toThrow("models[0].pricing[0].sourceUrl");
   });
 
   it("接受六家服务商的完整目录", () => {
-    expect(() => assertCatalog({ providers: catalogProviders, models, exchangeRates })).not.toThrow();
+    expect(() => assertCatalog({ providers: catalogProviders, models, exchangeRates, updates })).not.toThrow();
     expect(new Set(models.map((model) => model.providerId)).size).toBe(6);
+  });
+
+  it("锁定 OpenAI 官方价格字面量", () => {
+    const terra = models.find((model) => model.id === "openai-gpt-5-6-terra").pricing[0];
+    const luna = models.find((model) => model.id === "openai-gpt-5-6-luna").pricing[0];
+
+    expect(terra).toMatchObject({ input: 2, cachedInput: 0.2, cacheWrite: 2.5, output: 12 });
+    expect(luna).toMatchObject({ input: 0.2, cachedInput: 0.02, cacheWrite: 0.25, output: 1.2 });
+  });
+
+  it("拒绝固定六家之外的服务商集合", () => {
+    const invalidProviders = catalogProviders.map((provider, index) => (
+      index === catalogProviders.length - 1 ? { ...provider, id: "other" } : provider
+    ));
+
+    expect(() => assertCatalog({ providers: invalidProviders, models, exchangeRates }))
+      .toThrow("providers.ids");
+  });
+
+  it("拒绝重复的服务商 ID", () => {
+    const invalidProviders = catalogProviders.map((provider, index) => (
+      index === catalogProviders.length - 1 ? { ...provider, id: catalogProviders[0].id } : provider
+    ));
+
+    expect(() => assertCatalog({ providers: invalidProviders, models, exchangeRates }))
+      .toThrow(`providers[${catalogProviders.length - 1}].id`);
+  });
+
+  it("拒绝重复的模型 ID", () => {
+    const invalidModels = models.map((model, index) => (
+      index === 1 ? { ...model, id: models[0].id } : model
+    ));
+
+    expect(() => assertCatalog({ providers: catalogProviders, models: invalidModels, exchangeRates }))
+      .toThrow("models[1].id");
+  });
+
+  it("拒绝所有模型都归属同一家服务商", () => {
+    const invalidModels = models.map((model) => ({ ...model, providerId: "openai" }));
+
+    expect(() => assertCatalog({ providers: catalogProviders, models: invalidModels, exchangeRates }))
+      .toThrow("models.providerId.openai");
+  });
+
+  it("拒绝重复的更新记录 ID", () => {
+    const invalidUpdates = updates.map((update, index) => (
+      index === 1 ? { ...update, id: updates[0].id } : update
+    ));
+
+    expect(() => assertCatalog({
+      providers: catalogProviders,
+      models,
+      exchangeRates,
+      updates: invalidUpdates,
+    })).toThrow("updates[1].id");
   });
 
   it.each([
@@ -79,6 +118,31 @@ describe("assertCatalog", () => {
     })).toThrow("providers[0].officialPricingUrl");
   });
 
+  it("拒绝缺少计费币种的服务商", () => {
+    const invalidProviders = catalogProviders.map((provider, index) => (
+      index === 0 ? { ...provider, billingCurrency: "" } : provider
+    ));
+
+    expect(() => assertCatalog({ providers: invalidProviders, models, exchangeRates }))
+      .toThrow("providers[0].billingCurrency");
+  });
+
+  it("拒绝价格来源使用非服务商官方域名", () => {
+    expect(() => assertCatalog({
+      providers: catalogProviders,
+      models: replaceFirstPrice({ sourceUrl: "https://example.com/pricing" }),
+      exchangeRates,
+    })).toThrow("models[0].pricing[0].sourceUrl");
+  });
+
+  it("拒绝价格币种与服务商计费币种不一致", () => {
+    expect(() => assertCatalog({
+      providers: catalogProviders,
+      models: replaceFirstPrice({ currency: "CNY" }),
+      exchangeRates,
+    })).toThrow("models[0].pricing[0].currency");
+  });
+
   it.each([
     ["currency", ""],
     ["unitTokens", undefined],
@@ -95,6 +159,90 @@ describe("assertCatalog", () => {
     })).toThrow(field === "input" || field === "output"
       ? "models[0].pricing[0].price"
       : `models[0].pricing[0].${field}`);
+  });
+
+  it.each(["input", "output"])("拒绝核心价格为零：%s", (field) => {
+    expect(() => assertCatalog({
+      providers: catalogProviders,
+      models: replaceFirstPrice({ [field]: 0 }),
+      exchangeRates,
+    })).toThrow("models[0].pricing[0].price");
+  });
+
+  it.each(["cachedInput", "cacheWrite", "batchInput", "batchOutput", "batchCachedInput"])(
+    "拒绝负数可选价格：%s",
+    (field) => {
+      expect(() => assertCatalog({
+        providers: catalogProviders,
+        models: replaceFirstPrice({ [field]: -1 }),
+        exchangeRates,
+      })).toThrow(`models[0].pricing[0].${field}`);
+    },
+  );
+
+  it.each([Number.NaN, Number.POSITIVE_INFINITY])("拒绝非有限可选价格：%s", (value) => {
+    expect(() => assertCatalog({
+      providers: catalogProviders,
+      models: replaceFirstPrice({ cachedInput: value }),
+      exchangeRates,
+    })).toThrow("models[0].pricing[0].cachedInput");
+  });
+
+  it("拒绝无效的阶梯边界", () => {
+    const tiers = [{ minInputTokens: 1, maxInputTokens: 0, input: 1, output: 2 }];
+
+    expect(() => assertCatalog({
+      providers: catalogProviders,
+      models: replaceFirstPrice({ tiers }),
+      exchangeRates,
+    })).toThrow("models[0].pricing[0].tiers[0].maxInputTokens");
+  });
+
+  it("拒绝非正数的阶梯核心价格", () => {
+    const tiers = [{ minInputTokens: 1, maxInputTokens: 10, input: 0, output: 2 }];
+
+    expect(() => assertCatalog({
+      providers: catalogProviders,
+      models: replaceFirstPrice({ tiers }),
+      exchangeRates,
+    })).toThrow("models[0].pricing[0].tiers[0].price");
+  });
+
+  it("拒绝相互重叠的价格阶梯", () => {
+    const tiers = [
+      { minInputTokens: 1, maxInputTokens: 100, input: 1, output: 2 },
+      { minInputTokens: 100, maxInputTokens: 200, input: 2, output: 4 },
+    ];
+
+    expect(() => assertCatalog({
+      providers: catalogProviders,
+      models: replaceFirstPrice({ tiers }),
+      exchangeRates,
+    })).toThrow("models[0].pricing[0].tiers[1].minInputTokens");
+  });
+
+  it("拒绝负数的阶梯可选价格", () => {
+    const tiers = [{
+      minInputTokens: 1,
+      maxInputTokens: 10,
+      input: 1,
+      output: 2,
+      batchInput: -1,
+    }];
+
+    expect(() => assertCatalog({
+      providers: catalogProviders,
+      models: replaceFirstPrice({ tiers }),
+      exchangeRates,
+    })).toThrow("models[0].pricing[0].tiers[0].batchInput");
+  });
+
+  it.each(["2026-8-6", "2026-02-30"])("拒绝非真实 YYYY-MM-DD 日期：%s", (verifiedAt) => {
+    expect(() => assertCatalog({
+      providers: catalogProviders,
+      models: replaceFirstPrice({ verifiedAt }),
+      exchangeRates,
+    })).toThrow("models[0].pricing[0].verifiedAt");
   });
 
   it.each(["baseCurrency", "quoteCurrency"])("拒绝缺少汇率币种：%s", (field) => {
