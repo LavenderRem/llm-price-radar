@@ -113,7 +113,7 @@ function ModelIdentity({ model, onOpenDetail }) {
           className="model-detail-button"
           type="button"
           aria-label={`查看 ${model.displayName} 详情`}
-          onClick={() => onOpenDetail(model.id)}
+          onClick={(event) => onOpenDetail(model.id, event)}
         >
           {model.displayName}
         </button>

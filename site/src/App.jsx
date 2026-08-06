@@ -6,9 +6,13 @@ import { ComparisonView } from "./components/ComparisonView.jsx";
 import { CostEstimator } from "./components/CostEstimator.jsx";
 import { EmptyState } from "./components/EmptyState.jsx";
 import { FilterBar } from "./components/FilterBar.jsx";
+import { MethodologyView } from "./components/MethodologyView.jsx";
+import { ModelDetail } from "./components/ModelDetail.jsx";
 import { PricingTable } from "./components/PricingTable.jsx";
+import { UpdatesView } from "./components/UpdatesView.jsx";
 import { models, providers } from "./data/catalog.js";
 import { exchangeRates } from "./data/exchangeRates.js";
+import { updates } from "./data/updates.js";
 import { toggleComparison } from "./domain/comparison.js";
 import { filterAndSortModels } from "./domain/filters.js";
 import { normalizeModel } from "./domain/pricing.js";
@@ -30,11 +34,13 @@ export function App() {
   const [comparisonLimitReached, setComparisonLimitReached] = useState(false);
   const comparisonTriggerRef = useRef(null);
   const comparisonCtaRef = useRef(null);
+  const detailTriggerRef = useRef(null);
   const importedEstimateRef = useRef(new URLSearchParams(window.location.search).get("estimate") ?? "");
   const [state, setState] = useUrlState(parseUrlState(window.location.search));
   const normalizedModels = models.map((model) => normalizeModel(model, state.currency, exchangeRates, providers));
   const visibleModels = filterAndSortModels(normalizedModels, state);
   const verifiedAt = models[0]?.pricing[0]?.verifiedAt ?? "";
+  const detailModel = models.find((model) => model.id === state.detailId);
 
   const changeFilters = (changes) => {
     setState((current) => ({ ...current, ...changes }));
@@ -112,6 +118,17 @@ export function App() {
     setState((current) => ({ ...current, ...filterDefaults }));
   };
 
+  const openDetail = (detailId, event) => {
+    detailTriggerRef.current = event.currentTarget;
+    changeFilters({ detailId });
+  };
+
+  const closeDetail = () => {
+    const trigger = detailTriggerRef.current;
+    changeFilters({ detailId: "" });
+    requestAnimationFrame(() => trigger?.focus());
+  };
+
   return (
     <div className="app-shell">
       <AppHeader
@@ -141,7 +158,7 @@ export function App() {
                 currency={state.currency}
                 selectedIds={state.compareIds}
                 onToggleCompare={toggleCompare}
-                onOpenDetail={(detailId) => changeFilters({ detailId })}
+                onOpenDetail={openDetail}
                 sortBy={state.sortBy}
                 sortDirection={state.sortDirection}
                 onSort={changeSort}
@@ -179,11 +196,8 @@ export function App() {
           onShare={copyEstimateLink}
           initialEstimate={importedEstimateRef.current}
         />
-      ) : (
-        <main className="future-view-slot">
-          <p>{view === "calculator" ? "成本估算" : "更新记录"}</p>
-        </main>
-      )}
+      ) : view === "updates" ? <UpdatesView updates={updates} providers={providers} />
+        : <MethodologyView exchangeRate={exchangeRates[0]} />}
       {comparisonOpen ? (
         <div className="comparison-overlay">
           <ComparisonView
@@ -192,6 +206,16 @@ export function App() {
             onClose={closeComparison}
             onRemove={removeFromComparison}
             onCopyLink={copyComparisonLink}
+          />
+        </div>
+      ) : null}
+      {detailModel ? (
+        <div className="detail-overlay">
+          <ModelDetail
+            model={detailModel}
+            currency={state.currency}
+            onClose={closeDetail}
+            onAddToComparison={() => toggleCompare(detailModel.id)}
           />
         </div>
       ) : null}

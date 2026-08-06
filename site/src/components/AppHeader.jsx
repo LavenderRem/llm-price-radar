@@ -6,6 +6,7 @@ const views = [
   { id: "pricing", label: "价格对比" },
   { id: "calculator", label: "成本估算" },
   { id: "updates", label: "更新记录" },
+  { id: "methodology", label: "计价说明" },
 ];
 
 export function AppHeader({ view, currency, verifiedAt, onViewChange, onCurrencyChange }) {

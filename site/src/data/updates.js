@@ -9,6 +9,7 @@ export const updates = models.flatMap((model) => {
     Object.freeze({
       id: `${model.id}-added-20260806`,
       modelId: model.id,
+      providerId: model.providerId,
       type: "model-added",
       effectiveAt: verifiedAt,
       verifiedAt,
@@ -18,6 +19,7 @@ export const updates = models.flatMap((model) => {
     Object.freeze({
       id: `${model.id}-verified-20260806`,
       modelId: model.id,
+      providerId: model.providerId,
       type: "price-verified",
       effectiveAt: verifiedAt,
       verifiedAt,
