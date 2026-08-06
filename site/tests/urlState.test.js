@@ -16,7 +16,6 @@ const defaults = {
   currency: "CNY",
   compareIds: [],
   detailId: "",
-  estimate: "",
 };
 
 it("序列化后恢复筛选和三个对比模型", () => {
@@ -32,7 +31,6 @@ it("序列化后恢复筛选和三个对比模型", () => {
     currency: "CNY",
     compareIds: ["a", "b", "c"],
     detailId: "a",
-    estimate: "",
   };
 
   expect(parseUrlState(serializeUrlState(state))).toEqual(state);
@@ -53,11 +51,12 @@ it("序列化时去重并限制三个对比模型", () => {
     .toContain("compare=a%2Cb%2Cc");
 });
 
-it("仅在存在 estimate 时保留主动分享的估算参数", () => {
+it("普通 URL 状态忽略主动分享的 estimate 参数", () => {
   const state = { ...defaults, estimate: '{"monthlyRequests":1000}' };
 
   expect(serializeUrlState(defaults)).not.toContain("estimate=");
-  expect(parseUrlState(serializeUrlState(state))).toEqual(state);
+  expect(serializeUrlState(state)).not.toContain("estimate=");
+  expect(parseUrlState("?estimate=%7B%22monthlyRequests%22%3A1000%7D")).toEqual(defaults);
 });
 
 it("在 popstate 时从当前 URL 恢复状态", () => {

@@ -30,6 +30,7 @@ export function App() {
   const [comparisonLimitReached, setComparisonLimitReached] = useState(false);
   const comparisonTriggerRef = useRef(null);
   const comparisonCtaRef = useRef(null);
+  const importedEstimateRef = useRef(new URLSearchParams(window.location.search).get("estimate") ?? "");
   const [state, setState] = useUrlState(parseUrlState(window.location.search));
   const normalizedModels = models.map((model) => normalizeModel(model, state.currency, exchangeRates, providers));
   const visibleModels = filterAndSortModels(normalizedModels, state);
@@ -84,10 +85,9 @@ export function App() {
 
   const copyEstimateLink = async (estimate) => {
     if (!navigator.clipboard?.writeText) return false;
-    const url = `${window.location.origin}${window.location.pathname}${serializeUrlState({
-      ...state,
-      estimate: JSON.stringify(estimate),
-    })}`;
+    const params = new URLSearchParams(serializeUrlState(state));
+    params.set("estimate", JSON.stringify(estimate));
+    const url = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
     try {
       await navigator.clipboard.writeText(url);
       return true;
@@ -177,6 +177,7 @@ export function App() {
           selectedIds={state.compareIds}
           currency={state.currency}
           onShare={copyEstimateLink}
+          initialEstimate={importedEstimateRef.current}
         />
       ) : (
         <main className="future-view-slot">

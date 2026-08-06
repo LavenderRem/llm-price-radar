@@ -47,9 +47,9 @@ function readStoredValues() {
   }
 }
 
-function readInitialValues() {
+function readInitialValues(initialEstimate) {
   try {
-    const estimate = new URLSearchParams(window.location.search).get("estimate");
+    const estimate = initialEstimate ?? new URLSearchParams(window.location.search).get("estimate");
     if (estimate) return normalizeValues(JSON.parse(estimate));
   } catch {
     // An invalid shared link must not prevent a local estimate from opening.
@@ -103,8 +103,8 @@ function NumberField({ label, value, maximum, onChange }) {
   );
 }
 
-export function CostEstimator({ models, selectedIds, currency, onShare }) {
-  const [values, setValues] = useState(readInitialValues);
+export function CostEstimator({ models, selectedIds, currency, onShare, initialEstimate }) {
+  const [values, setValues] = useState(() => readInitialValues(initialEstimate));
   const [shareMessage, setShareMessage] = useState("");
   const selectedModels = useMemo(() => selectedIds
     .map((id) => models.find((model) => model.id === id))
@@ -115,7 +115,11 @@ export function CostEstimator({ models, selectedIds, currency, onShare }) {
   const baseline = estimates.find((estimate) => estimate?.model.id === values.baselineModelId);
 
   useEffect(() => {
-    window.localStorage.setItem(storageKey, JSON.stringify(values));
+    try {
+      window.localStorage.setItem(storageKey, JSON.stringify(values));
+    } catch {
+      // Private browsing and storage quotas must not block the estimator.
+    }
   }, [values]);
 
   const changeNumber = (field, maximum) => (value) => {

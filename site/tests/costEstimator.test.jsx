@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 import { App } from "../src/App.jsx";
@@ -18,6 +18,7 @@ const models = [
 ];
 
 afterEach(() => {
+  vi.restoreAllMocks();
   window.localStorage.clear();
   window.history.replaceState(null, "", "/");
 });
@@ -91,6 +92,41 @@ it("从主动分享的 estimate 参数恢复调用量", () => {
   render(<CostEstimator models={models} selectedIds={["cached-model"]} currency="CNY" onShare={() => Promise.resolve(true)} />);
 
   expect(screen.getByRole("spinbutton", { name: "每月请求数" })).toHaveValue(4321);
+});
+
+it("将 estimate 作为一次性导入，不让普通 URL 和对比链接泄露调用量", async () => {
+  const user = userEvent.setup();
+  const writeText = vi.fn().mockResolvedValue(undefined);
+  Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
+  const estimate = encodeURIComponent(JSON.stringify({ monthlyRequests: 4321 }));
+  window.history.replaceState(null, "", `?compare=openai-gpt-5-6-terra&estimate=${estimate}`);
+  render(<App />);
+
+  await user.click(screen.getByRole("button", { name: "成本估算" }));
+  expect(screen.getByRole("spinbutton", { name: "每月请求数" })).toHaveValue(4321);
+  await user.click(screen.getByRole("button", { name: "USD" }));
+  expect(window.location.search).not.toContain("estimate=");
+
+  await user.click(screen.getByRole("button", { name: "价格对比" }));
+  await user.type(screen.getByRole("searchbox"), "GPT");
+  await waitFor(() => expect(window.location.search).toContain("q=GPT"));
+  expect(window.location.search).not.toContain("estimate=");
+
+  await user.click(screen.getByRole("button", { name: "加入对比（1）" }));
+  await user.click(screen.getByRole("button", { name: "复制对比链接" }));
+  expect(writeText).toHaveBeenCalledOnce();
+  expect(writeText.mock.calls[0][0]).not.toContain("estimate=");
+});
+
+it("本地存储写入失败时仍保留内存中的估算状态", () => {
+  vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+    throw new DOMException("Storage is unavailable", "SecurityError");
+  });
+  render(<CostEstimator models={models} selectedIds={["cached-model"]} currency="CNY" onShare={() => Promise.resolve(true)} />);
+
+  const requests = screen.getByRole("spinbutton", { name: "每月请求数" });
+  fireEvent.change(requests, { target: { value: "1234" } });
+  expect(requests).toHaveValue(1234);
 });
 
 it("限制数值范围并仅在点击分享估算时写入调用量参数", async () => {
