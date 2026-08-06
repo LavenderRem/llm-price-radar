@@ -58,6 +58,30 @@ describe("filterAndSortModels", () => {
     expect(result.map((model) => model.id)).toEqual(["qwen"]);
   });
 
+  it("按中文服务商名称前缀搜索阿里云和智谱模型", () => {
+    const providerModels = [
+      {
+        ...models[0],
+        id: "qwen",
+        providerId: "aliyun",
+        providerName: "阿里云百炼",
+        displayName: "Qwen Max",
+      },
+      {
+        ...models[1],
+        id: "glm",
+        providerId: "zhipu",
+        providerName: "智谱开放平台",
+        displayName: "GLM-4",
+      },
+    ];
+
+    expect(filterAndSortModels(providerModels, { query: "阿里云" })
+      .map((model) => model.id)).toEqual(["qwen"]);
+    expect(filterAndSortModels(providerModels, { query: "智谱" })
+      .map((model) => model.id)).toEqual(["glm"]);
+  });
+
   it("稳定排序，并始终把未公开价格放在最后", () => {
     const result = filterAndSortModels([
       { ...models[1], id: "same-first", normalized: { input: 1 } },

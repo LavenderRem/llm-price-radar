@@ -56,3 +56,9 @@
 - **RED**：中文 `providerName` 搜索与“`aria-sort` 不应位于按钮”两项 RED，均为前任修复者实际记录的失败证据；本轮接管未虚构或重放该记录。
 - **GREEN**：由本轮修复者重新执行 `npm test -- filters.test.js pricingTable.test.jsx appNavigation.test.jsx`，结果为 3 个测试文件、10 条断言全部通过。
 - 全量验证由本轮修复者执行：`npm test` 为 7 个测试文件、80 条断言全部通过；`npm run build` 成功；`npm run test:sites` 的 4 个子测试全部通过；`git diff --check` 成功。
+
+## 修复轮次 2：中文服务商名称测试覆盖
+
+- 保留既有“百炼”查询回归用例，并新增“阿里云”匹配“阿里云百炼”及“智谱”匹配“智谱开放平台”的断言。
+- 本轮未修改生产实现；新增断言验证 `providerName` 搜索字段能匹配服务商名称的不同中文片段。
+- 验证：`npm test -- filters.test.js` 为 1 个测试文件、5 条断言全部通过；`npm test` 为 7 个测试文件、81 条断言全部通过；`npm run build`、`npm run test:sites`（4 个子测试）和 `git diff --check` 均通过。
