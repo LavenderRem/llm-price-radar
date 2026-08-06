@@ -4,6 +4,7 @@ import {
   normalizePricing,
   selectPriceTier,
 } from "../src/domain/pricing.js";
+import { models, providers } from "../src/data/catalog.js";
 
 describe("normalizePricing", () => {
   it("把每千 Token 美元价换算为每百万 Token 人民币价", () => {
@@ -57,6 +58,17 @@ describe("selectPriceTier", () => {
   ])("在阶梯边界选择正确价格：%i Token", (averageInputTokens, input) => {
     expect(selectPriceTier(price, averageInputTokens).input).toBe(input);
   });
+
+  it.each([0, -1])("输入长度为 %i 时选择最低阶梯", (averageInputTokens) => {
+    const unsortedPrice = {
+      tiers: [
+        { minInputTokens: 100, maxInputTokens: 200, input: 6, output: 22.5 },
+        { minInputTokens: 1, maxInputTokens: 99, input: 3, output: 15 },
+      ],
+    };
+
+    expect(selectPriceTier(unsortedPrice, averageInputTokens).input).toBe(3);
+  });
 });
 
 describe("normalizeModel", () => {
@@ -74,5 +86,12 @@ describe("normalizeModel", () => {
 
     expect(result.providerName).toBe("示例服务商");
     expect(result.normalized).toMatchObject({ input: 14.4, output: 57.6, blended: 27.36 });
+  });
+
+  it("未提供上下文长度时为真实阶梯模型选择最低档", () => {
+    const model = models.find((item) => item.id === "aliyun-qwen3-max");
+    const result = normalizeModel(model, "CNY", [], providers);
+
+    expect(result.normalized).toMatchObject({ input: 2.5, output: 10, batchInput: 1.25 });
   });
 });

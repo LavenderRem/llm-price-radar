@@ -19,6 +19,13 @@ function exchangeMultiplier(from, to, exchangeRates) {
 export function selectPriceTier(price, averageInputTokens) {
   if (!price.tiers?.length) return price;
 
+  if (averageInputTokens <= 0) {
+    const tier = [...price.tiers].sort((left, right) => (
+      left.minInputTokens - right.minInputTokens
+    ))[0];
+    return { ...price, ...tier, tiers: price.tiers };
+  }
+
   const tier = price.tiers.find((item) => (
     (item.minInputTokens === undefined || averageInputTokens >= item.minInputTokens)
     && (item.maxInputTokens === undefined || averageInputTokens <= item.maxInputTokens)
