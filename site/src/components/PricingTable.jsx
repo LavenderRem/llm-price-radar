@@ -8,6 +8,8 @@ const capabilityLabels = {
   vision: "多模态",
   audio: "音频",
   video: "视频",
+  reasoning: "推理",
+  embedding: "Embedding",
 };
 
 function isPrice(value) {
@@ -25,14 +27,15 @@ function formatPrice(value) {
   return value.toFixed(2);
 }
 
-function Price({ value, currency, accent = false, barMax = 0 }) {
+function Price({ value, currency, accent = false, barMax = 0, startingAt = false, tierLabel = false }) {
   if (!isPrice(value)) return <span className="unpublished">未公开</span>;
 
   const symbol = currency === "CNY" ? "¥" : "$";
   return (
     <span className={`price-value${accent ? " price-value-accent" : ""}`}>
-      <strong>{symbol}{formatPrice(value)}</strong>
+      <strong>{startingAt ? "起 " : ""}{symbol}{formatPrice(value)}</strong>
       <small>{currency} · 每百万 Token</small>
+      {tierLabel ? <small className="tier-pricing-label">阶梯计价</small> : null}
       {barMax > 0 ? (
         <progress aria-label={`${formatPrice(value)} ${currency}`} max={barMax} value={value} />
       ) : null}
@@ -77,20 +80,6 @@ function batchDiscount(normalized) {
   const input = Math.round((1 - normalized.batchInput / normalized.input) * 100);
   const output = Math.round((1 - normalized.batchOutput / normalized.output) * 100);
   return `${input}% / ${output}%`;
-}
-
-function PricePair({ normalized, currency }) {
-  const input = isPrice(normalized.batchInput) ? normalized.batchInput : normalized.input;
-  const output = isPrice(normalized.batchOutput) ? normalized.batchOutput : normalized.output;
-  if (!isPrice(input) || !isPrice(output)) return <span className="unpublished">未公开</span>;
-
-  const symbol = currency === "CNY" ? "¥" : "$";
-  return (
-    <span className={isPrice(normalized.batchInput) ? "effective-pair has-discount" : "effective-pair"}>
-      {symbol}{formatPrice(input)} / {symbol}{formatPrice(output)}
-      <small>{currency} · 每百万 Token</small>
-    </span>
-  );
 }
 
 function ModelIdentity({ model, onOpenDetail }) {
@@ -160,7 +149,7 @@ export function PricingTable({
               <th className="column-secondary" scope="col">批量折扣<span className="column-unit">输入 / 输出</span></th>
               <th scope="col" aria-sort={sortBy === "blended" ? `${sortDirection}ending` : "none"}>
                 <SortButton field="blended" label="有效价格" {...{ sortBy, sortDirection, onSort }} />
-                <span className="column-unit">输入 / 输出</span>
+                <span className="column-unit">输入 70% / 输出 30%</span>
               </th>
               <th scope="col">官方来源</th>
             </tr>
@@ -169,6 +158,7 @@ export function PricingTable({
             {models.map((model) => {
               const selected = selectedIds.includes(model.id);
               const discount = batchDiscount(model.normalized);
+              const tiered = model.normalized.tiers?.length > 0;
               return (
                 <tr className={selected ? "is-selected" : ""} key={model.id}>
                   <td>
@@ -182,11 +172,11 @@ export function PricingTable({
                   <td><ModelIdentity model={model} onOpenDetail={onOpenDetail} /></td>
                   <td><CapabilityTags capabilities={model.capabilities} /></td>
                   <td className="context-value">{formatContext(model.contextWindow)}</td>
-                  <td><Price value={model.normalized.input} currency={currency} barMax={maxInput} /></td>
-                  <td><Price value={model.normalized.output} currency={currency} barMax={maxOutput} /></td>
+                  <td><Price value={model.normalized.input} currency={currency} barMax={maxInput} startingAt={tiered} tierLabel={tiered} /></td>
+                  <td><Price value={model.normalized.output} currency={currency} barMax={maxOutput} startingAt={tiered} /></td>
                   <td className="column-secondary"><Price value={model.normalized.cachedInput} currency={currency} accent barMax={maxCached} /></td>
                   <td className="column-secondary">{discount ? <span className="discount-value">{discount}</span> : <span className="unpublished">未公开</span>}</td>
-                  <td><PricePair normalized={model.normalized} currency={currency} /></td>
+                  <td><Price value={model.normalized.blended} currency={currency} startingAt={tiered} /></td>
                   <td>
                     <a className="source-link" href={model.pricing[0].sourceUrl} target="_blank" rel="noreferrer">
                       查看官方价
@@ -204,6 +194,7 @@ export function PricingTable({
       <ul className="mobile-model-list" aria-label="模型价格摘要">
         {models.map((model) => {
           const selected = selectedIds.includes(model.id);
+          const tiered = model.normalized.tiers?.length > 0;
           return (
             <li key={model.id}>
               <div className="mobile-model-heading">
@@ -219,8 +210,9 @@ export function PricingTable({
               </div>
               <CapabilityTags capabilities={model.capabilities} />
               <dl>
-                <div><dt>输入价格</dt><dd><Price value={model.normalized.input} currency={currency} /></dd></div>
-                <div><dt>输出价格</dt><dd><Price value={model.normalized.output} currency={currency} /></dd></div>
+                <div><dt>输入价格</dt><dd><Price value={model.normalized.input} currency={currency} startingAt={tiered} tierLabel={tiered} /></dd></div>
+                <div><dt>输出价格</dt><dd><Price value={model.normalized.output} currency={currency} startingAt={tiered} /></dd></div>
+                <div><dt>有效价格（输入 70% / 输出 30%）</dt><dd><Price value={model.normalized.blended} currency={currency} startingAt={tiered} /></dd></div>
               </dl>
             </li>
           );

@@ -25,6 +25,10 @@ export function filterAndSortModels(models, state = {}) {
       const matchesCapabilities = !capabilities.length
         || capabilities.every((item) => model.capabilities?.includes(item));
       const matchesContext = !state.minContext || model.contextWindow >= state.minContext;
+      const matchesMinimumInput = !state.minInputPrice
+        || (hasPrice(normalized.input) && normalized.input >= state.minInputPrice);
+      const matchesMaximumInput = !state.maxInputPrice
+        || (hasPrice(normalized.input) && normalized.input <= state.maxInputPrice);
       const matchesCache = !state.hasCache || hasPrice(normalized.cachedInput);
       const matchesBatch = !state.hasBatch
         || hasPrice(normalized.batchInput) || hasPrice(normalized.batchOutput);
@@ -34,6 +38,8 @@ export function filterAndSortModels(models, state = {}) {
         && matchesProvider
         && matchesCapabilities
         && matchesContext
+        && matchesMinimumInput
+        && matchesMaximumInput
         && matchesCache
         && matchesBatch;
     })

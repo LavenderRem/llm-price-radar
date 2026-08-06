@@ -7,6 +7,8 @@ import X from "lucide-react/dist/esm/icons/x.mjs";
 const capabilityOptions = [
   { id: "text", label: "文本" },
   { id: "vision", label: "多模态" },
+  { id: "reasoning", label: "推理" },
+  { id: "embedding", label: "Embedding" },
 ];
 
 function toggle(list, value) {
@@ -28,7 +30,7 @@ export function FilterBar({ state, providers, onChange, onClear }) {
 
   useEffect(() => {
     if (query === state.query) return undefined;
-    const timeout = window.setTimeout(() => onChange({ query }), 150);
+    const timeout = window.setTimeout(() => onChange({ query }, { history: "replace" }), 150);
     return () => window.clearTimeout(timeout);
   }, [onChange, query, state.query]);
 
@@ -180,6 +182,32 @@ export function FilterBar({ state, providers, onChange, onClear }) {
                 <option value="200000">200K</option>
                 <option value="1000000">1,000K</option>
               </select>
+            </label>
+            <label>
+              <span>最低输入价</span>
+              <input
+                aria-label="最低输入价"
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.01"
+                value={state.minInputPrice || ""}
+                placeholder={`0 ${state.currency}/百万 Token`}
+                onChange={(event) => onChange({ minInputPrice: Number(event.target.value) || 0 })}
+              />
+            </label>
+            <label>
+              <span>最高输入价</span>
+              <input
+                aria-label="最高输入价"
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.01"
+                value={state.maxInputPrice || ""}
+                placeholder={`不限（${state.currency}/百万 Token）`}
+                onChange={(event) => onChange({ maxInputPrice: Number(event.target.value) || 0 })}
+              />
             </label>
             <label className="check-filter">
               <input

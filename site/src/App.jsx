@@ -13,7 +13,7 @@ import { UpdatesView } from "./components/UpdatesView.jsx";
 import { models, providers } from "./data/catalog.js";
 import { exchangeRates } from "./data/exchangeRates.js";
 import { updates } from "./data/updates.js";
-import { toggleComparison } from "./domain/comparison.js";
+import { sanitizeComparisonIds, toggleComparison } from "./domain/comparison.js";
 import { filterAndSortModels } from "./domain/filters.js";
 import { normalizeModel } from "./domain/pricing.js";
 import { parseUrlState, serializeUrlState } from "./domain/urlState.js";
@@ -24,6 +24,8 @@ const filterDefaults = {
   providers: [],
   capabilities: [],
   minContext: 0,
+  minInputPrice: 0,
+  maxInputPrice: 0,
   hasCache: false,
   hasBatch: false,
 };
@@ -36,14 +38,27 @@ export function App() {
   const comparisonCtaRef = useRef(null);
   const detailTriggerRef = useRef(null);
   const importedEstimateRef = useRef(new URLSearchParams(window.location.search).get("estimate") ?? "");
-  const [state, setState] = useUrlState(parseUrlState(window.location.search));
+  const initialStateRef = useRef(null);
+  if (initialStateRef.current === null) {
+    const parsed = parseUrlState(window.location.search);
+    const sanitized = sanitizeComparisonIds(parsed.compareIds, models);
+    initialStateRef.current = {
+      state: { ...parsed, compareIds: sanitized.ids },
+      removedCompareCount: sanitized.removedCount,
+    };
+  }
+  const [invalidCompareMessage] = useState(() => {
+    const count = initialStateRef.current.removedCompareCount;
+    return count > 0 ? `链接中的 ${count} 个模型已不可用，已忽略` : "";
+  });
+  const [state, setState] = useUrlState(initialStateRef.current.state);
   const normalizedModels = models.map((model) => normalizeModel(model, state.currency, exchangeRates, providers));
   const visibleModels = filterAndSortModels(normalizedModels, state);
   const verifiedAt = models[0]?.pricing[0]?.verifiedAt ?? "";
   const detailModel = normalizedModels.find((model) => model.id === state.detailId);
 
-  const changeFilters = (changes) => {
-    setState((current) => ({ ...current, ...changes }));
+  const changeFilters = (changes, options) => {
+    setState((current) => ({ ...current, ...changes }), options);
   };
 
   const toggleCompare = (modelId) => {
@@ -178,6 +193,9 @@ export function App() {
             >
               加入对比（{state.compareIds.length}）
             </button>
+            {invalidCompareMessage ? (
+              <p className="comparison-link-warning" role="status">{invalidCompareMessage}</p>
+            ) : null}
             {comparisonLimitReached ? <p className="comparison-limit" role="status">最多选择 3 个模型</p> : null}
             <ComparisonTray
               models={normalizedModels}
@@ -216,6 +234,8 @@ export function App() {
             currency={state.currency}
             onClose={closeDetail}
             onAddToComparison={() => toggleCompare(detailModel.id)}
+            isSelected={state.compareIds.includes(detailModel.id)}
+            comparisonLimitReached={comparisonLimitReached}
           />
         </div>
       ) : null}

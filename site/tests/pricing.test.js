@@ -69,6 +69,36 @@ describe("selectPriceTier", () => {
 
     expect(selectPriceTier(unsortedPrice, averageInputTokens).input).toBe(3);
   });
+
+  it.each([
+    ["openai-gpt-5-6-terra", 271999, 2, 0.2, 12, 1, 0.1, 6],
+    ["openai-gpt-5-6-terra", 272000, 2, 0.2, 12, 1, 0.1, 6],
+    ["openai-gpt-5-6-terra", 272001, 4, 0.4, 18, 2, 0.2, 9],
+    ["openai-gpt-5-6-luna", 271999, 0.2, 0.02, 1.2, 0.1, 0.01, 0.6],
+    ["openai-gpt-5-6-luna", 272000, 0.2, 0.02, 1.2, 0.1, 0.01, 0.6],
+    ["openai-gpt-5-6-luna", 272001, 0.4, 0.04, 1.8, 0.2, 0.02, 0.9],
+  ])("%s 在 %i Token 选择完整的标准、缓存与 Batch 档位", (
+    modelId,
+    averageInputTokens,
+    input,
+    cachedInput,
+    output,
+    batchInput,
+    batchCachedInput,
+    batchOutput,
+  ) => {
+    const model = models.find((item) => item.id === modelId);
+    const selected = selectPriceTier(model.pricing[0], averageInputTokens);
+
+    expect(selected).toMatchObject({
+      input,
+      cachedInput,
+      output,
+      batchInput,
+      batchCachedInput,
+      batchOutput,
+    });
+  });
 });
 
 describe("normalizeModel", () => {

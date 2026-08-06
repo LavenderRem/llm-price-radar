@@ -34,6 +34,8 @@ export function parseUrlState(search) {
     providers: split(params.get("providers")),
     capabilities: split(params.get("capabilities")),
     minContext: positiveNumber(params.get("context")),
+    minInputPrice: positiveNumber(params.get("minPrice")),
+    maxInputPrice: positiveNumber(params.get("maxPrice")),
     hasCache: params.get("cache") === "1",
     hasBatch: params.get("batch") === "1",
     sortBy: sortBy(params.get("sort")),
@@ -54,6 +56,12 @@ export function serializeUrlState(state) {
   if (providers.length) params.set("providers", providers.join(","));
   if (capabilities.length) params.set("capabilities", capabilities.join(","));
   if (positiveNumber(state.minContext)) params.set("context", String(positiveNumber(state.minContext)));
+  if (positiveNumber(state.minInputPrice)) {
+    params.set("minPrice", String(positiveNumber(state.minInputPrice)));
+  }
+  if (positiveNumber(state.maxInputPrice)) {
+    params.set("maxPrice", String(positiveNumber(state.maxInputPrice)));
+  }
   if (state.hasCache) params.set("cache", "1");
   if (state.hasBatch) params.set("batch", "1");
   params.set("sort", sortBy(state.sortBy));

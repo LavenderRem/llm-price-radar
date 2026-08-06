@@ -4,7 +4,8 @@ import { afterEach, expect, it, vi } from "vitest";
 import { App } from "../src/App.jsx";
 import { ComparisonTray } from "../src/components/ComparisonTray.jsx";
 import { ComparisonView } from "../src/components/ComparisonView.jsx";
-import { toggleComparison } from "../src/domain/comparison.js";
+import { models as catalogModels } from "../src/data/catalog.js";
+import { sanitizeComparisonIds, toggleComparison } from "../src/domain/comparison.js";
 import { parseUrlState } from "../src/domain/urlState.js";
 
 const selectedModels = [
@@ -37,6 +38,17 @@ it("保留前三个模型并在选择第四个时报告上限", () => {
   });
 });
 
+it("初始化时忽略未知和非在售模型，不让它们占用三个名额", () => {
+  expect(sanitizeComparisonIds(
+    ["unknown-a", "active-a", "retired-a", "active-b", "unknown-b"],
+    [
+      { id: "active-a", status: "active" },
+      { id: "retired-a", status: "retired" },
+      { id: "active-b", status: "active" },
+    ],
+  )).toEqual({ ids: ["active-a", "active-b"], removedCount: 3 });
+});
+
 afterEach(() => window.history.replaceState(null, "", "/"));
 
 it("达到上限时保留已选模型并显示限制说明", async () => {
@@ -52,6 +64,20 @@ it("达到上限时保留已选模型并显示限制说明", async () => {
 
   expect(fourthModel).not.toBeChecked();
   expect(screen.getByRole("status")).toHaveTextContent("最多选择 3 个模型");
+});
+
+it.each([
+  ["unknown-a,unknown-b", 0, "链接中的 2 个模型已不可用，已忽略"],
+  ["unknown-a,openai-gpt-5-6-terra,unknown-b", 1, "链接中的 2 个模型已不可用，已忽略"],
+])("清洗初始对比链接 %s", async (compare, expectedCount, message) => {
+  window.history.replaceState(null, "", `?compare=${compare}`);
+  render(<App />);
+
+  expect(screen.getByRole("button", { name: `加入对比（${expectedCount}）` })).toBeInTheDocument();
+  expect(await screen.findByRole("status")).toHaveTextContent(message);
+  expect(new URLSearchParams(window.location.search).get("compare"))
+    .toBe(expectedCount ? "openai-gpt-5-6-terra" : null);
+  expect(catalogModels.some((model) => model.id === "unknown-a")).toBe(false);
 });
 
 it("移除已选模型后可以加入新的模型", async () => {

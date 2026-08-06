@@ -1,10 +1,11 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { act } from "react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { EmptyState } from "../src/components/EmptyState.jsx";
 import { FilterBar } from "../src/components/FilterBar.jsx";
 import { PricingTable } from "../src/components/PricingTable.jsx";
+import { filterAndSortModels } from "../src/domain/filters.js";
 
 const model = {
   id: "m1",
@@ -14,6 +15,7 @@ const model = {
   apiModelId: "model-1",
   capabilities: ["text", "vision"],
   contextWindow: 128000,
+  status: "active",
   pricing: [{ sourceUrl: "https://example.com/pricing" }],
   normalized: {
     input: 2,
@@ -21,6 +23,7 @@ const model = {
     cachedInput: 0.5,
     batchInput: 1,
     batchOutput: 4,
+    blended: 3.8,
   },
 };
 
@@ -107,6 +110,56 @@ describe("PricingTable", () => {
     expect(logos.every((logo) => logo.getAttribute("src")?.includes("openai"))).toBe(true);
     expect(container.querySelector(".provider-mark")).not.toBeInTheDocument();
   });
+
+  it("有效价格显示与 blended 排序使用同一个 70/30 标量", () => {
+    const cheaper = { ...model, id: "cheap", displayName: "Cheaper", normalized: { ...model.normalized, blended: 3.8 } };
+    const pricier = { ...model, id: "pricey", displayName: "Pricier", normalized: { ...model.normalized, blended: 5.2 } };
+    const sorted = filterAndSortModels([pricier, cheaper], { sortBy: "blended", sortDirection: "asc" });
+    render(<PricingTable
+      models={sorted}
+      currency="CNY"
+      selectedIds={[]}
+      onToggleCompare={() => {}}
+      onOpenDetail={() => {}}
+      sortBy="blended"
+      sortDirection="asc"
+      onSort={() => {}}
+    />);
+
+    const table = screen.getByRole("table");
+    expect(within(table).getByText("输入 70% / 输出 30%")).toBeInTheDocument();
+    const rows = within(table).getAllByRole("row").slice(1);
+    expect(rows[0]).toHaveTextContent("Cheaper");
+    expect(rows[0].children[8]).toHaveTextContent("¥3.80");
+    expect(rows[1]).toHaveTextContent("Pricier");
+    expect(rows[1].children[8]).toHaveTextContent("¥5.20");
+  });
+
+  it("阶梯模型主表价格显示起始价与阶梯计价提示", () => {
+    render(<PricingTable
+      models={[{
+        ...model,
+        normalized: {
+          ...model.normalized,
+          tiers: [
+            { minInputTokens: 1, maxInputTokens: 32000, input: 2, output: 8 },
+            { minInputTokens: 32001, maxInputTokens: 128000, input: 4, output: 16 },
+          ],
+        },
+      }]}
+      currency="CNY"
+      selectedIds={[]}
+      onToggleCompare={() => {}}
+      onOpenDetail={() => {}}
+      sortBy="input"
+      sortDirection="asc"
+      onSort={() => {}}
+    />);
+
+    const table = screen.getByRole("table");
+    expect(within(table).getAllByText("阶梯计价").length).toBeGreaterThan(0);
+    expect(within(table).getByText("起 ¥2.00")).toBeInTheDocument();
+  });
 });
 
 describe("FilterBar", () => {
@@ -138,7 +191,7 @@ describe("FilterBar", () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(150);
     });
-    expect(onChange).toHaveBeenCalledWith({ query: "gpt" });
+    expect(onChange).toHaveBeenCalledWith({ query: "gpt" }, { history: "replace" });
 
     onChange.mockClear();
     fireEvent.click(screen.getByRole("checkbox", { name: "OpenAI" }));
@@ -176,6 +229,33 @@ describe("FilterBar", () => {
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("dialog", { name: "筛选模型" })).not.toBeInTheDocument();
     expect(trigger).toHaveFocus();
+  });
+
+  it("提供推理、Embedding 和输入价格区间筛选控件", () => {
+    const onChange = vi.fn();
+    render(<FilterBar
+      state={{
+        query: "",
+        providers: [],
+        capabilities: [],
+        minContext: 0,
+        minInputPrice: 0,
+        maxInputPrice: 0,
+        hasCache: false,
+        hasBatch: false,
+      }}
+      providers={[{ id: "openai", name: "OpenAI" }]}
+      onChange={onChange}
+      onClear={() => {}}
+    />);
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "推理" }));
+    expect(onChange).toHaveBeenCalledWith({ capabilities: ["reasoning"] });
+    expect(screen.getByRole("checkbox", { name: "Embedding" })).toBeInTheDocument();
+    fireEvent.change(screen.getByRole("spinbutton", { name: "最低输入价" }), { target: { value: "0.5" } });
+    fireEvent.change(screen.getByRole("spinbutton", { name: "最高输入价" }), { target: { value: "3" } });
+    expect(onChange).toHaveBeenCalledWith({ minInputPrice: 0.5 });
+    expect(onChange).toHaveBeenCalledWith({ maxInputPrice: 3 });
   });
 });
 

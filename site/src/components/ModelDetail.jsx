@@ -20,6 +20,7 @@ function PriceRows({ price, currency }) {
     ["缓存输入", "cachedInput", price.cachedInput],
     ["缓存写入", "cacheWrite", price.cacheWrite],
     ["Batch 输入", "batchInput", price.batchInput],
+    ["Batch 缓存输入", "batchCachedInput", price.batchCachedInput],
     ["Batch 输出", "batchOutput", price.batchOutput],
   ].filter(([, , value]) => isPrice(value));
 
@@ -55,11 +56,22 @@ function Tiers({ price, currency }) {
             <li key={`${tier.minInputTokens}-${tier.maxInputTokens}`}>
               <strong>第 {index + 1} 档：{tier.minInputTokens.toLocaleString("zh-CN")}–{tier.maxInputTokens.toLocaleString("zh-CN")} Token</strong>
               <span>输入 {formatPrice(tier.input, price.currency)}；输出 {formatPrice(tier.output, price.currency)}</span>
+              {isPrice(tier.cachedInput) || isPrice(tier.cacheWrite)
+                ? <span>缓存输入 {formatPrice(tier.cachedInput, price.currency)}；缓存写入 {formatPrice(tier.cacheWrite, price.currency)}</span>
+                : null}
               {normalizedTier ? <span>折合：输入 {formatPrice(normalizedTier.input, currency)}；输出 {formatPrice(normalizedTier.output, currency)}</span> : null}
               {isPrice(tier.batchInput) || isPrice(tier.batchOutput)
                 ? <>
-                  <span>Batch：输入 {formatPrice(tier.batchInput, price.currency)}；输出 {formatPrice(tier.batchOutput, price.currency)}</span>
-                  {normalizedTier ? <span>折合 Batch：输入 {formatPrice(normalizedTier.batchInput, currency)}；输出 {formatPrice(normalizedTier.batchOutput, currency)}</span> : null}
+                  <span>
+                    Batch：输入 {formatPrice(tier.batchInput, price.currency)}
+                    {isPrice(tier.batchCachedInput) ? <>；缓存输入 {formatPrice(tier.batchCachedInput, price.currency)}</> : null}
+                    ；输出 {formatPrice(tier.batchOutput, price.currency)}
+                  </span>
+                  {normalizedTier ? <span>
+                    折合 Batch：输入 {formatPrice(normalizedTier.batchInput, currency)}
+                    {isPrice(tier.batchCachedInput) ? <>；缓存输入 {formatPrice(normalizedTier.batchCachedInput, currency)}</> : null}
+                    ；输出 {formatPrice(normalizedTier.batchOutput, currency)}
+                  </span> : null}
                 </>
                 : null}
             </li>
@@ -70,7 +82,14 @@ function Tiers({ price, currency }) {
   );
 }
 
-export function ModelDetail({ model, currency, onClose, onAddToComparison }) {
+export function ModelDetail({
+  model,
+  currency,
+  onClose,
+  onAddToComparison,
+  isSelected = false,
+  comparisonLimitReached = false,
+}) {
   const closeButtonRef = useRef(null);
   const dialogRef = useRef(null);
 
@@ -144,7 +163,12 @@ export function ModelDetail({ model, currency, onClose, onAddToComparison }) {
       <footer className="model-detail-footer">
         {model.status === "retired"
           ? <p>已下线模型仅保留历史详情，不能加入新的对比。</p>
-          : <button type="button" onClick={onAddToComparison}>加入对比</button>}
+          : <>
+            {comparisonLimitReached ? <p className="comparison-limit" role="status">最多选择 3 个模型</p> : null}
+            <button type="button" aria-pressed={isSelected} onClick={onAddToComparison}>
+              {isSelected ? "移出对比" : "加入对比"}
+            </button>
+          </>}
       </footer>
     </section>
   );

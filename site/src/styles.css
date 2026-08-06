@@ -833,7 +833,9 @@ a:focus-visible {
   gap: 6px;
 }
 
-.more-filters-panel select {
+.more-filters-panel select,
+.more-filters-panel input[type="number"] {
+  width: 100%;
   height: 36px;
   padding: 0 9px;
   background: white;
@@ -1083,6 +1085,15 @@ a:focus-visible {
 
 .price-value-accent strong {
   color: #067c7f;
+}
+
+.tier-pricing-label {
+  width: max-content;
+  padding: 1px 4px;
+  color: #7650dd !important;
+  background: #f2efff;
+  border-radius: 4px;
+  font-weight: 700 !important;
 }
 
 .price-value progress {
@@ -1374,6 +1385,18 @@ a:focus-visible {
 
 .estimator-note {
   margin-top: 5px !important;
+}
+
+.estimator-version,
+.estimator-exchange {
+  margin-top: 8px !important;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.estimator-exchange a {
+  font-weight: 700;
 }
 
 .estimator-total {

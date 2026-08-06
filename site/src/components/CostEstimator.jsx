@@ -79,7 +79,31 @@ function estimateModel(model, values, currency) {
       batchShare: values.batchSharePercent / 100,
     });
 
-    return { model, cost, supportsCache, supportsBatch };
+    const directRate = exchangeRates.find((rate) => (
+      rate.baseCurrency === price.currency && rate.quoteCurrency === currency
+    ));
+    const reverseRate = exchangeRates.find((rate) => (
+      rate.baseCurrency === currency && rate.quoteCurrency === price.currency
+    ));
+    const exchangeRate = directRate ?? (reverseRate ? {
+      baseCurrency: price.currency,
+      quoteCurrency: currency,
+      rate: 1 / reverseRate.rate,
+      effectiveAt: reverseRate.effectiveAt,
+      source: reverseRate.source,
+    } : null);
+
+    return {
+      model,
+      cost,
+      supportsCache,
+      supportsBatch,
+      priceVersion: {
+        effectiveAt: price.effectiveAt,
+        verifiedAt: price.verifiedAt,
+      },
+      exchangeRate,
+    };
   } catch {
     return null;
   }
@@ -181,6 +205,20 @@ export function CostEstimator({ models, selectedIds, currency, onShare, initialE
               </dl>
               {!estimate.supportsCache && values.cacheHitRatePercent > 0 ? <p className="estimator-note">按标准输入价计算</p> : null}
               {!estimate.supportsBatch && values.batchSharePercent > 0 ? <p className="estimator-note">Batch 按标准价格计算</p> : null}
+              {estimate.priceVersion.effectiveAt || estimate.priceVersion.verifiedAt ? (
+                <p className="estimator-version">
+                  {estimate.priceVersion.effectiveAt ? `价格生效：${estimate.priceVersion.effectiveAt}` : null}
+                  {estimate.priceVersion.effectiveAt && estimate.priceVersion.verifiedAt ? " · " : null}
+                  {estimate.priceVersion.verifiedAt ? `核验：${estimate.priceVersion.verifiedAt}` : null}
+                </p>
+              ) : null}
+              {estimate.exchangeRate ? (
+                <p className="estimator-exchange">
+                  汇率：1 {estimate.exchangeRate.baseCurrency} = {estimate.exchangeRate.rate.toFixed(4)} {estimate.exchangeRate.quoteCurrency}
+                  {` · 汇率日期：${estimate.exchangeRate.effectiveAt} · `}
+                  <a href={estimate.exchangeRate.source} target="_blank" rel="noreferrer">中国人民银行官方汇率来源</a>
+                </p>
+              ) : null}
               <div className="estimator-total"><span>总成本</span><strong>{formatMoney(estimate.cost.total, currency)}</strong></div>
               {difference !== null ? <p className="estimator-difference">相对基准 {difference >= 0 ? "+" : ""}{formatMoney(difference, currency)}{differencePercent !== null ? `（${differencePercent >= 0 ? "+" : ""}${differencePercent.toFixed(2)}%）` : ""}</p> : null}
             </article>

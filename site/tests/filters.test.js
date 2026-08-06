@@ -93,4 +93,30 @@ describe("filterAndSortModels", () => {
     expect(result.map((model) => model.id))
       .toEqual(["same-first", "same-second", "unpublished"]);
   });
+
+  it("组合推理能力与当前币种输入价格区间筛选", () => {
+    const result = filterAndSortModels(models, {
+      capabilities: ["reasoning"],
+      minInputPrice: 0.4,
+      maxInputPrice: 0.6,
+      sortBy: "input",
+      sortDirection: "asc",
+    });
+
+    expect(result.map((model) => model.id)).toEqual(["reason"]);
+  });
+
+  it("Embedding 能力没有匹配目录时返回空结果", () => {
+    expect(filterAndSortModels(models, { capabilities: ["embedding"] })).toEqual([]);
+  });
+
+  it("输入价格区间包含最小值和最大值边界", () => {
+    const result = filterAndSortModels(models, {
+      minInputPrice: 0.2,
+      maxInputPrice: 0.5,
+      sortBy: "input",
+    });
+
+    expect(result.map((model) => model.id)).toEqual(["fast", "reason"]);
+  });
 });

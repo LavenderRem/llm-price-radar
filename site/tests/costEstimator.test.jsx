@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 import { App } from "../src/App.jsx";
@@ -16,6 +16,25 @@ const models = [
     pricing: [{ currency: "CNY", unitTokens: 1000000, input: 2, output: 8 }],
   },
 ];
+
+const longContextModel = {
+  id: "long-context-model",
+  displayName: "长上下文模型",
+  pricing: [{
+    currency: "USD",
+    unitTokens: 1000000,
+    input: 2,
+    cachedInput: 0.2,
+    output: 12,
+    effectiveAt: "2026-08-06",
+    verifiedAt: "2026-08-06",
+    sourceUrl: "https://developers.openai.com/api/docs/models/gpt-5.6-terra",
+    tiers: [
+      { minInputTokens: 1, maxInputTokens: 272000, input: 2, cachedInput: 0.2, output: 12 },
+      { minInputTokens: 272001, maxInputTokens: 1050000, input: 4, cachedInput: 0.4, output: 18 },
+    ],
+  }],
+};
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -146,4 +165,45 @@ it("限制数值范围并仅在点击分享估算时写入调用量参数", asyn
   expect(writeText).toHaveBeenCalledOnce();
   expect(writeText.mock.calls[0][0]).toContain("estimate=");
   expect(writeText.mock.calls[0][0]).toContain("monthlyRequests");
+});
+
+it("成本估算器在 272K 边界后切换长上下文价格", async () => {
+  const user = userEvent.setup();
+  render(<CostEstimator
+    models={[longContextModel]}
+    selectedIds={["long-context-model"]}
+    currency="USD"
+    onShare={() => Promise.resolve(true)}
+  />);
+
+  fireEvent.change(screen.getByRole("spinbutton", { name: "每月请求数" }), { target: { value: "1" } });
+  fireEvent.change(screen.getByRole("spinbutton", { name: "平均输出 Token" }), { target: { value: "0" } });
+  const input = screen.getByRole("spinbutton", { name: "平均输入 Token" });
+
+  await user.clear(input);
+  await user.type(input, "272000");
+  expect(screen.getByRole("article", { name: "长上下文模型 成本估算" }))
+    .toHaveTextContent("总成本$0.54");
+
+  await user.clear(input);
+  await user.type(input, "272001");
+  expect(screen.getByRole("article", { name: "长上下文模型 成本估算" }))
+    .toHaveTextContent("总成本$1.09");
+});
+
+it("估算结果展示价格版本、核验日期与实际换汇元数据", () => {
+  render(<CostEstimator
+    models={[longContextModel]}
+    selectedIds={["long-context-model"]}
+    currency="CNY"
+    onShare={() => Promise.resolve(true)}
+  />);
+
+  const result = screen.getByRole("article", { name: "长上下文模型 成本估算" });
+  expect(result).toHaveTextContent("价格生效：2026-08-06");
+  expect(result).toHaveTextContent("核验：2026-08-06");
+  expect(result).toHaveTextContent("1 USD = 6.7895 CNY");
+  expect(result).toHaveTextContent("汇率日期：2026-08-06");
+  expect(within(result).getByRole("link", { name: "中国人民银行官方汇率来源" }))
+    .toHaveAttribute("href", expect.stringContaining("pbc.gov.cn"));
 });
