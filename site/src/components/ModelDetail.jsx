@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import ExternalLink from "lucide-react/dist/esm/icons/external-link.mjs";
 import { exchangeRates } from "../data/exchangeRates.js";
+import { normalizePricing } from "../domain/pricing.js";
 
 function isPrice(value) {
   return typeof value === "number" && Number.isFinite(value);
@@ -12,31 +13,26 @@ function formatPrice(value, currency) {
   return `${symbol}${value.toFixed(value < 0.1 ? 3 : 2)} ${currency} / 每百万 Token`;
 }
 
-function convert(value, sourceCurrency, targetCurrency) {
-  if (!isPrice(value) || sourceCurrency === targetCurrency) return value;
-  const rate = exchangeRates.find((item) => item.baseCurrency === "USD" && item.quoteCurrency === "CNY")?.rate;
-  if (!rate) return undefined;
-  return sourceCurrency === "USD" ? value * rate : value / rate;
-}
-
 function PriceRows({ price, currency }) {
   const rows = [
-    ["标准输入", price.input],
-    ["标准输出", price.output],
-    ["缓存输入", price.cachedInput],
-    ["缓存写入", price.cacheWrite],
-    ["Batch 输入", price.batchInput],
-    ["Batch 输出", price.batchOutput],
-  ].filter(([, value]) => isPrice(value));
+    ["标准输入", "input", price.input],
+    ["标准输出", "output", price.output],
+    ["缓存输入", "cachedInput", price.cachedInput],
+    ["缓存写入", "cacheWrite", price.cacheWrite],
+    ["Batch 输入", "batchInput", price.batchInput],
+    ["Batch 输出", "batchOutput", price.batchOutput],
+  ].filter(([, , value]) => isPrice(value));
+
+  const normalized = price.currency === currency ? null : normalizePricing(price, currency, exchangeRates);
 
   return (
     <dl className="detail-prices">
-      {rows.map(([label, value]) => (
+      {rows.map(([label, key, value]) => (
         <div key={label}>
           <dt>{label}</dt>
           <dd>
             <span>{formatPrice(value, price.currency)}</span>
-            {price.currency !== currency ? <small>折合 {formatPrice(convert(value, price.currency, currency), currency)}</small> : null}
+            {normalized ? <small>折合 {formatPrice(normalized[key], currency)}</small> : null}
           </dd>
         </div>
       ))}
@@ -44,21 +40,31 @@ function PriceRows({ price, currency }) {
   );
 }
 
-function Tiers({ tiers, currency }) {
+function Tiers({ price, currency }) {
+  const { tiers } = price;
   if (!tiers?.length) return null;
   return (
     <section className="detail-tiers" aria-label="阶梯价格">
       <h3>阶梯价格</h3>
       <ul>
-        {tiers.map((tier, index) => (
-          <li key={`${tier.minInputTokens}-${tier.maxInputTokens}`}>
-            <strong>第 {index + 1} 档：{tier.minInputTokens.toLocaleString("zh-CN")}–{tier.maxInputTokens.toLocaleString("zh-CN")} Token</strong>
-            <span>输入 {formatPrice(tier.input, currency)}；输出 {formatPrice(tier.output, currency)}</span>
-            {isPrice(tier.batchInput) || isPrice(tier.batchOutput)
-              ? <span>Batch：输入 {formatPrice(tier.batchInput, currency)}；输出 {formatPrice(tier.batchOutput, currency)}</span>
-              : null}
-          </li>
-        ))}
+        {tiers.map((tier, index) => {
+          const normalizedTier = price.currency === currency
+            ? null
+            : normalizePricing({ ...price, ...tier }, currency, exchangeRates);
+          return (
+            <li key={`${tier.minInputTokens}-${tier.maxInputTokens}`}>
+              <strong>第 {index + 1} 档：{tier.minInputTokens.toLocaleString("zh-CN")}–{tier.maxInputTokens.toLocaleString("zh-CN")} Token</strong>
+              <span>输入 {formatPrice(tier.input, price.currency)}；输出 {formatPrice(tier.output, price.currency)}</span>
+              {normalizedTier ? <span>折合：输入 {formatPrice(normalizedTier.input, currency)}；输出 {formatPrice(normalizedTier.output, currency)}</span> : null}
+              {isPrice(tier.batchInput) || isPrice(tier.batchOutput)
+                ? <>
+                  <span>Batch：输入 {formatPrice(tier.batchInput, price.currency)}；输出 {formatPrice(tier.batchOutput, price.currency)}</span>
+                  {normalizedTier ? <span>折合 Batch：输入 {formatPrice(normalizedTier.batchInput, currency)}；输出 {formatPrice(normalizedTier.batchOutput, currency)}</span> : null}
+                </>
+                : null}
+            </li>
+          );
+        })}
       </ul>
     </section>
   );
@@ -126,7 +132,7 @@ export function ModelDetail({ model, currency, onClose, onAddToComparison }) {
               </a>
             </div>
             <PriceRows price={price} currency={currency} />
-            <Tiers tiers={price.tiers} currency={price.currency} />
+            <Tiers price={price} currency={currency} />
             <section className="detail-conditions" aria-label="计费条件">
               <h3>计费条件</h3>
               <ul>{price.conditions.map((condition) => <li key={condition}>{condition}</li>)}</ul>

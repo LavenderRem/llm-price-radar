@@ -113,6 +113,22 @@ describe("assertCatalog", () => {
   });
 
   it.each([
+    ["providerId", "anthropic", "updates[0].providerId"],
+    ["type", "not-supported", "updates[0].type"],
+    ["summary", "   ", "updates[0].summary"],
+    ["sourceUrl", "https://example.com/price", "updates[0].sourceUrl"],
+  ])("拒绝无效更新记录字段：%s", (field, value, errorPath) => {
+    const invalidUpdates = [{ ...updates[0], [field]: value }, ...updates.slice(1)];
+
+    expect(() => assertCatalog({
+      providers: catalogProviders,
+      models,
+      exchangeRates,
+      updates: invalidUpdates,
+    })).toThrow(errorPath);
+  });
+
+  it.each([
     ["displayName", ""],
     ["apiModelId", ""],
     ["capabilities", []],

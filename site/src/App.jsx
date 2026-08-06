@@ -40,7 +40,7 @@ export function App() {
   const normalizedModels = models.map((model) => normalizeModel(model, state.currency, exchangeRates, providers));
   const visibleModels = filterAndSortModels(normalizedModels, state);
   const verifiedAt = models[0]?.pricing[0]?.verifiedAt ?? "";
-  const detailModel = models.find((model) => model.id === state.detailId);
+  const detailModel = normalizedModels.find((model) => model.id === state.detailId);
 
   const changeFilters = (changes) => {
     setState((current) => ({ ...current, ...changes }));

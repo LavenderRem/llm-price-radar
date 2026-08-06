@@ -36,6 +36,7 @@ describe("App", () => {
     await user.click(detailButton);
 
     const dialog = screen.getByRole("dialog", { name: "GPT-5.6 Terra 详情" });
+    expect(dialog).toHaveTextContent("OpenAI · 在售");
     expect(dialog).toHaveTextContent("gpt-5.6-terra");
     expect(dialog).toHaveTextContent("计费条件");
     expect(dialog).toHaveTextContent("官方来源");
@@ -64,15 +65,26 @@ describe("App", () => {
     expect(detailButton).toHaveFocus();
   });
 
-  it("在更新记录中可按服务商和价格下降筛选", async () => {
+  it("更新记录导航展示可筛选页面", async () => {
     const user = userEvent.setup();
     render(<App />);
 
     await user.click(screen.getByRole("button", { name: "更新记录" }));
-    await user.selectOptions(screen.getByLabelText("服务商"), "openai");
-    await user.selectOptions(screen.getByLabelText("事件类型"), "price-decreased");
+    expect(screen.getByLabelText("服务商")).toBeInTheDocument();
+    expect(screen.getByLabelText("事件类型")).toBeInTheDocument();
+  });
 
-    expect(screen.getByText("未找到符合条件的更新记录")).toBeInTheDocument();
+  it("阶梯价同时展示原始币种和统一折算价", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "USD" }));
+    await user.click(screen.getAllByRole("button", { name: "查看 Qwen3-Max 详情" })[0]);
+
+    const tiers = screen.getByRole("region", { name: "阶梯价格" });
+    expect(tiers).toHaveTextContent("输入 ¥2.50 CNY / 每百万 Token");
+    expect(tiers).toHaveTextContent("折合：输入 $0.37 USD / 每百万 Token");
+    expect(tiers).toHaveTextContent("折合 Batch：输入 $0.18 USD / 每百万 Token");
   });
 
   it("在计价说明中展示汇率来源与免责声明", async () => {

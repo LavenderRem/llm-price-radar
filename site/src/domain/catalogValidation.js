@@ -31,6 +31,13 @@ function httpsUrl(value, path) {
 }
 
 const PROVIDER_IDS = ["openai", "anthropic", "google", "deepseek", "aliyun", "zhipu"];
+const UPDATE_TYPES = new Set([
+  "price-increased",
+  "price-decreased",
+  "model-added",
+  "model-retired",
+  "price-verified",
+]);
 const OPTIONAL_PRICES = [
   "cachedInput",
   "cacheWrite",
@@ -97,11 +104,13 @@ export function assertCatalog({ providers, models, exchangeRates, updates }) {
   }
 
   const modelIds = new Set();
+  const modelById = new Map();
   const modelCountByProvider = new Map(PROVIDER_IDS.map((providerId) => [providerId, 0]));
   for (const [modelIndex, model] of models.entries()) {
     required(model.id, `models[${modelIndex}].id`);
     if (modelIds.has(model.id)) throw new Error(`models[${modelIndex}].id`);
     modelIds.add(model.id);
+    modelById.set(model.id, model);
     if (!providerIds.has(model.providerId)) throw new Error(`models[${modelIndex}].providerId`);
     modelCountByProvider.set(model.providerId, modelCountByProvider.get(model.providerId) + 1);
   }
@@ -154,6 +163,17 @@ export function assertCatalog({ providers, models, exchangeRates, updates }) {
       if (updateIds.has(update.id)) throw new Error(`updates[${updateIndex}].id`);
       updateIds.add(update.id);
       if (!modelIds.has(update.modelId)) throw new Error(`updates[${updateIndex}].modelId`);
+      const model = modelById.get(update.modelId);
+      required(update.providerId, `updates[${updateIndex}].providerId`);
+      if (update.providerId !== model.providerId) throw new Error(`updates[${updateIndex}].providerId`);
+      if (!UPDATE_TYPES.has(update.type)) throw new Error(`updates[${updateIndex}].type`);
+      if (typeof update.summary !== "string" || update.summary.trim() === "") {
+        throw new Error(`updates[${updateIndex}].summary`);
+      }
+      const sourceUrl = httpsUrl(update.sourceUrl, `updates[${updateIndex}].sourceUrl`);
+      if (sourceUrl.hostname !== providerById.get(update.providerId).officialPricingHost) {
+        throw new Error(`updates[${updateIndex}].sourceUrl`);
+      }
       validDate(update.effectiveAt, `updates[${updateIndex}].effectiveAt`);
       validDate(update.verifiedAt, `updates[${updateIndex}].verifiedAt`);
     }
