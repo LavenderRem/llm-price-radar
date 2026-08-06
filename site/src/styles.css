@@ -79,7 +79,7 @@ a:focus-visible {
   display: flex;
   align-items: center;
   flex: 0 0 205px;
-  gap: 10px;
+  gap: 7px;
 }
 
 .brand-lockup h1 {
@@ -91,15 +91,11 @@ a:focus-visible {
 }
 
 .brand-mark {
-  display: grid;
-  width: 26px;
-  height: 26px;
-  place-items: center;
-  color: white;
-  background: var(--primary);
-  border-radius: 7px;
-  box-shadow: inset -7px -7px 0 rgb(27 198 194 / 72%);
-  transform: rotate(-4deg);
+  display: block;
+  width: 32px;
+  height: 30px;
+  flex: 0 0 auto;
+  object-fit: contain;
 }
 
 .primary-nav {
@@ -267,12 +263,13 @@ a:focus-visible {
 }
 
 .comparison-selection-list li {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  align-items: start;
   padding: 10px;
   background: white;
   border: 1px solid var(--line);
   border-radius: 7px;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
   gap: 8px;
 }
 
@@ -294,6 +291,11 @@ a:focus-visible {
   font-size: 11px;
 }
 
+.comparison-selection-list .provider-logo {
+  width: 34px;
+  height: 34px;
+}
+
 .comparison-selection-list button,
 .comparison-view-header button,
 .comparison-model-headings button {
@@ -313,6 +315,70 @@ a:focus-visible {
   text-align: left;
   background: transparent;
   border: 0;
+}
+
+.comparison-monthly-summary {
+  padding-top: 14px;
+  margin-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.comparison-monthly-summary header {
+  display: grid;
+  gap: 3px;
+}
+
+.comparison-monthly-summary header strong {
+  font-size: 14px;
+}
+
+.comparison-monthly-summary header span,
+.comparison-monthly-summary p {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.comparison-monthly-summary ul {
+  display: grid;
+  padding: 0;
+  margin: 10px 0 0;
+  list-style: none;
+  gap: 7px;
+}
+
+.comparison-monthly-summary li {
+  display: grid;
+  align-items: baseline;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 8px;
+}
+
+.comparison-monthly-summary li > span {
+  overflow: hidden;
+  color: #34435a;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.comparison-monthly-summary li > strong {
+  color: #24334a;
+  font-family: var(--font-number);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.comparison-monthly-summary li > small {
+  grid-column: 1 / -1;
+  justify-self: end;
+  color: #067c7f;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.comparison-monthly-summary p {
+  margin: 10px 0 0;
+  line-height: 1.5;
 }
 
 .comparison-open,
@@ -907,8 +973,17 @@ a:focus-visible {
 .model-identity {
   display: grid;
   align-items: center;
-  grid-template-columns: 32px minmax(0, 1fr);
+  grid-template-columns: 36px minmax(0, 1fr);
   gap: 8px;
+}
+
+.provider-logo {
+  display: block;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  object-fit: contain;
+  user-select: none;
 }
 
 .model-identity > span:last-child {
@@ -942,24 +1017,6 @@ a:focus-visible {
 .model-detail-button:hover {
   color: var(--primary);
 }
-
-.provider-mark {
-  display: grid;
-  width: 30px;
-  height: 30px;
-  place-items: center;
-  color: white;
-  background: #142238;
-  border-radius: 9px;
-  font-size: 16px;
-  font-weight: 800;
-}
-
-.provider-anthropic { background: #2d3138; }
-.provider-google { background: #4285f4; }
-.provider-deepseek { background: #4a70e8; }
-.provider-aliyun { background: #526ff5; }
-.provider-zhipu { background: #12a7c7; }
 
 .capability-tags {
   display: flex;

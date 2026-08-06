@@ -1,6 +1,6 @@
 import Clock from "lucide-react/dist/esm/icons/clock.mjs";
 import Sun from "lucide-react/dist/esm/icons/sun.mjs";
-import Tag from "lucide-react/dist/esm/icons/tag.mjs";
+import modelPriceMark from "../assets/brand/model-price-mark.png";
 
 const views = [
   { id: "pricing", label: "价格对比" },
@@ -13,9 +13,7 @@ export function AppHeader({ view, currency, verifiedAt, onViewChange, onCurrency
   return (
     <header className="app-header">
       <div className="brand-lockup">
-        <span className="brand-mark" aria-hidden="true">
-          <Tag size={20} strokeWidth={2.3} />
-        </span>
+        <img className="brand-mark" src={modelPriceMark} alt="" draggable="false" />
         <h1>模型价签</h1>
       </div>
 

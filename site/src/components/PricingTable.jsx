@@ -1,21 +1,13 @@
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.mjs";
 import ChevronUp from "lucide-react/dist/esm/icons/chevron-up.mjs";
 import ExternalLink from "lucide-react/dist/esm/icons/external-link.mjs";
+import { ProviderLogo } from "./ProviderLogo.jsx";
 
 const capabilityLabels = {
   text: "文本",
   vision: "多模态",
   audio: "音频",
   video: "视频",
-};
-
-const providerMarks = {
-  openai: "O",
-  anthropic: "A",
-  google: "G",
-  deepseek: "D",
-  aliyun: "百",
-  zhipu: "智",
 };
 
 function isPrice(value) {
@@ -104,9 +96,7 @@ function PricePair({ normalized, currency }) {
 function ModelIdentity({ model, onOpenDetail }) {
   return (
     <span className="model-identity">
-      <span className={`provider-mark provider-${model.providerId}`} aria-hidden="true">
-        {providerMarks[model.providerId] ?? model.providerName.slice(0, 1)}
-      </span>
+      <ProviderLogo providerId={model.providerId} />
       <span>
         <strong>{model.providerName}</strong>
         <button

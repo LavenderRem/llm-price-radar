@@ -10,21 +10,23 @@ import { parseUrlState } from "../src/domain/urlState.js";
 const selectedModels = [
   {
     id: "a",
+    providerId: "openai",
     displayName: "模型 A",
     providerName: "Provider A",
     capabilities: ["text", "vision"],
     contextWindow: 128000,
     pricing: [{ conditions: ["标准按量计费"], verifiedAt: "2026-08-06", sourceUrl: "https://example.com/a" }],
-    normalized: { input: 2, output: 8, cachedInput: 0.5, batchInput: 1, batchOutput: 4 },
+    normalized: { currency: "CNY", unitTokens: 1000000, input: 2, output: 8, cachedInput: 0.5, batchInput: 1, batchOutput: 4 },
   },
   {
     id: "b",
+    providerId: "google",
     displayName: "模型 B",
     providerName: "Provider B",
     capabilities: ["text"],
     contextWindow: 64000,
     pricing: [{ conditions: ["Batch 另有折扣"], verifiedAt: "2026-08-06", sourceUrl: "https://example.com/b" }],
-    normalized: { input: 1, output: 10 },
+    normalized: { currency: "CNY", unitTokens: 1000000, input: 1, output: 5 },
   },
 ];
 
@@ -106,6 +108,26 @@ it("对比清单提供可操作的成本估算入口", async () => {
 
   await userEvent.click(screen.getByRole("button", { name: "前往成本估算" }));
   expect(onOpenCost).toHaveBeenCalledOnce();
+});
+
+it("对比清单使用品牌位图并展示参考月成本与最低成本文字", () => {
+  const { container } = render(
+    <ComparisonTray
+      models={selectedModels}
+      selectedIds={["a", "b"]}
+      onRemove={() => {}}
+      onOpenComparison={() => {}}
+      onOpenCost={() => {}}
+    />,
+  );
+
+  const logos = [...container.querySelectorAll("img.provider-logo")];
+  expect(logos).toHaveLength(2);
+  expect(logos.every((logo) => logo.getAttribute("alt") === "")).toBe(true);
+  expect(screen.getByText("参考月用量：输入 10M / 输出 5M")).toBeInTheDocument();
+  expect(screen.getByText("¥60.00")).toBeInTheDocument();
+  expect(screen.getByText("¥35.00")).toBeInTheDocument();
+  expect(screen.getByText("最低月成本")).toBeInTheDocument();
 });
 
 it("从对比清单可进入成本估算视图", async () => {

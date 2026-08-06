@@ -5,8 +5,11 @@ import { App } from "../src/App.jsx";
 
 describe("App", () => {
   it("显示产品名称", () => {
-    render(<App />);
+    const { container } = render(<App />);
     expect(screen.getByRole("heading", { name: "模型价签" })).toBeInTheDocument();
+    expect(container.querySelector("img.brand-mark")).toHaveAttribute("alt", "");
+    expect(container.querySelector("img.brand-mark")?.getAttribute("src"))
+      .toContain("model-price-mark");
   });
 
   it("通过键盘切换三个导航视图的活动态", async () => {

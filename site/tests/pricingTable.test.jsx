@@ -86,6 +86,27 @@ describe("PricingTable", () => {
 
     expect(screen.getByText("共 1 个模型")).toHaveAttribute("aria-live", "polite");
   });
+
+  it("使用带空 alt 的服务商位图，避免字母方块近似", () => {
+    const { container } = render(
+      <PricingTable
+        models={[model]}
+        currency="CNY"
+        selectedIds={[]}
+        onToggleCompare={() => {}}
+        onOpenDetail={() => {}}
+        sortBy="input"
+        sortDirection="asc"
+        onSort={() => {}}
+      />,
+    );
+
+    const logos = [...container.querySelectorAll("img.provider-logo")];
+    expect(logos).toHaveLength(2);
+    expect(logos.every((logo) => logo.getAttribute("alt") === "")).toBe(true);
+    expect(logos.every((logo) => logo.getAttribute("src")?.includes("openai"))).toBe(true);
+    expect(container.querySelector(".provider-mark")).not.toBeInTheDocument();
+  });
 });
 
 describe("FilterBar", () => {
