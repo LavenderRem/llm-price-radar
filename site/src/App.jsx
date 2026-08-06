@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import Info from "lucide-react/dist/esm/icons/info.mjs";
 import { AppHeader } from "./components/AppHeader.jsx";
 import { ComparisonTray } from "./components/ComparisonTray.jsx";
@@ -30,6 +30,14 @@ const filterDefaults = {
   hasBatch: false,
 };
 
+function sanitizeUrlComparisonState(state) {
+  const sanitized = sanitizeComparisonIds(state.compareIds, models);
+  return {
+    state: { ...state, compareIds: sanitized.ids },
+    removedCompareCount: sanitized.removedCount,
+  };
+}
+
 export function App() {
   const [view, setView] = useState("pricing");
   const [comparisonOpen, setComparisonOpen] = useState(false);
@@ -40,18 +48,19 @@ export function App() {
   const importedEstimateRef = useRef(new URLSearchParams(window.location.search).get("estimate") ?? "");
   const initialStateRef = useRef(null);
   if (initialStateRef.current === null) {
-    const parsed = parseUrlState(window.location.search);
-    const sanitized = sanitizeComparisonIds(parsed.compareIds, models);
-    initialStateRef.current = {
-      state: { ...parsed, compareIds: sanitized.ids },
-      removedCompareCount: sanitized.removedCount,
-    };
+    initialStateRef.current = sanitizeUrlComparisonState(parseUrlState(window.location.search));
   }
-  const [invalidCompareMessage] = useState(() => {
+  const [invalidCompareMessage, setInvalidCompareMessage] = useState(() => {
     const count = initialStateRef.current.removedCompareCount;
     return count > 0 ? `链接中的 ${count} 个模型已不可用，已忽略` : "";
   });
-  const [state, setState] = useUrlState(initialStateRef.current.state);
+  const restoreUrlState = useCallback((restored) => {
+    const sanitized = sanitizeUrlComparisonState(restored);
+    const count = sanitized.removedCompareCount;
+    setInvalidCompareMessage(count > 0 ? `链接中的 ${count} 个模型已不可用，已忽略` : "");
+    return { state: sanitized.state, changed: count > 0 };
+  }, []);
+  const [state, setState] = useUrlState(initialStateRef.current.state, restoreUrlState);
   const normalizedModels = models.map((model) => normalizeModel(model, state.currency, exchangeRates, providers));
   const visibleModels = filterAndSortModels(normalizedModels, state);
   const verifiedAt = models[0]?.pricing[0]?.verifiedAt ?? "";

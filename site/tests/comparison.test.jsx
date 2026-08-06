@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 import { App } from "../src/App.jsx";
@@ -49,6 +49,32 @@ it("初始化时忽略未知和非在售模型，不让它们占用三个名额"
   )).toEqual({ ids: ["active-a", "active-b"], removedCount: 3 });
 });
 
+it("有效模型位于三个未知 ID 之后时仍能通过目录校验保留", () => {
+  const parsed = parseUrlState(
+    "?compare=unknown-a,unknown-b,unknown-c,openai-gpt-5-6-terra",
+  );
+
+  expect(sanitizeComparisonIds(parsed.compareIds, catalogModels)).toEqual({
+    ids: ["openai-gpt-5-6-terra"],
+    removedCount: 3,
+  });
+});
+
+it("部分未知 ID 与四个有效 ID 混合时先校验再保留前三个有效模型", () => {
+  const parsed = parseUrlState(
+    "?compare=unknown-a,openai-gpt-5-6-terra,openai-gpt-5-6-luna,anthropic-claude-opus-5,anthropic-claude-sonnet-5",
+  );
+
+  expect(sanitizeComparisonIds(parsed.compareIds, catalogModels)).toEqual({
+    ids: [
+      "openai-gpt-5-6-terra",
+      "openai-gpt-5-6-luna",
+      "anthropic-claude-opus-5",
+    ],
+    removedCount: 2,
+  });
+});
+
 afterEach(() => window.history.replaceState(null, "", "/"));
 
 it("达到上限时保留已选模型并显示限制说明", async () => {
@@ -78,6 +104,35 @@ it.each([
   expect(new URLSearchParams(window.location.search).get("compare"))
     .toBe(expectedCount ? "openai-gpt-5-6-terra" : null);
   expect(catalogModels.some((model) => model.id === "unknown-a")).toBe(false);
+});
+
+it("popstate 恢复时清洗未知模型、替换当前 URL 且不新增历史记录", async () => {
+  window.history.replaceState(null, "", "?compare=openai-gpt-5-6-terra");
+  render(<App />);
+  const pushSpy = vi.spyOn(window.history, "pushState");
+  const replaceSpy = vi.spyOn(window.history, "replaceState");
+
+  act(() => {
+    window.history.pushState(
+      null,
+      "",
+      "?compare=unknown-a,openai-gpt-5-6-luna,unknown-b",
+    );
+    pushSpy.mockClear();
+    replaceSpy.mockClear();
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+
+  await waitFor(() => expect(screen.getByRole("button", { name: "加入对比（1）" })).toBeInTheDocument());
+  expect(screen.getAllByRole("status")).toHaveLength(1);
+  expect(screen.getByRole("status")).toHaveTextContent("链接中的 2 个模型已不可用，已忽略");
+  expect(new URLSearchParams(window.location.search).get("compare"))
+    .toBe("openai-gpt-5-6-luna");
+  expect(pushSpy).not.toHaveBeenCalled();
+  expect(replaceSpy).toHaveBeenCalledOnce();
+
+  pushSpy.mockRestore();
+  replaceSpy.mockRestore();
 });
 
 it("移除已选模型后可以加入新的模型", async () => {

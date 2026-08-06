@@ -45,9 +45,9 @@ it("为未知币种和排序字段回退，并为省略数组提供默认值", (
     .toEqual(defaults);
 });
 
-it("解析时去重并限制三个对比模型", () => {
+it("解析时去重但保留全部对比候选，供目录校验后再限制", () => {
   expect(parseUrlState("?compare=a,b,a,c,d").compareIds)
-    .toEqual(["a", "b", "c"]);
+    .toEqual(["a", "b", "c", "d"]);
 });
 
 it("序列化时去重并限制三个对比模型", () => {
@@ -104,14 +104,26 @@ it("离散状态创建历史记录并支持真实后退与前进", async () => {
 
   window.history.replaceState(null, "", serializeUrlState(defaults));
   render(createElement(UrlHistoryProbe));
+  const pushSpy = vi.spyOn(window.history, "pushState");
+  const replaceSpy = vi.spyOn(window.history, "replaceState");
   fireEvent.click(screen.getByRole("button", { name: "切换美元" }));
   expect(window.location.search).toContain("currency=USD");
+  expect(pushSpy).toHaveBeenCalledOnce();
 
+  pushSpy.mockClear();
+  replaceSpy.mockClear();
   act(() => window.history.back());
   await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("CNY"));
+  expect(pushSpy).not.toHaveBeenCalled();
+  expect(replaceSpy).not.toHaveBeenCalled();
 
   act(() => window.history.forward());
   await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("USD"));
+  expect(pushSpy).not.toHaveBeenCalled();
+  expect(replaceSpy).not.toHaveBeenCalled();
+
+  pushSpy.mockRestore();
+  replaceSpy.mockRestore();
 });
 
 it("搜索替换当前记录，popstate 恢复时不再写历史", () => {

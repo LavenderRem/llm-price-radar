@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { parseUrlState, serializeUrlState } from "../domain/urlState.js";
 
-export function useUrlState(initialState) {
+export function useUrlState(initialState, restoreState) {
   const [state, setState] = useState(initialState);
   const stateRef = useRef(initialState);
+  const restoreStateRef = useRef(restoreState);
+  restoreStateRef.current = restoreState;
 
   useEffect(() => {
     const canonicalSearch = serializeUrlState(stateRef.current);
@@ -14,9 +16,17 @@ export function useUrlState(initialState) {
 
   useEffect(() => {
     const restore = () => {
-      const restored = parseUrlState(window.location.search);
+      const parsed = parseUrlState(window.location.search);
+      const result = restoreStateRef.current?.(parsed);
+      const restored = result?.state ?? parsed;
       stateRef.current = restored;
       setState(restored);
+      if (result?.changed) {
+        const cleanedSearch = serializeUrlState(restored);
+        if (window.location.search !== cleanedSearch) {
+          window.history.replaceState(null, "", cleanedSearch);
+        }
+      }
     };
     window.addEventListener("popstate", restore);
     return () => window.removeEventListener("popstate", restore);

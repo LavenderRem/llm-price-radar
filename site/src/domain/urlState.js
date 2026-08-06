@@ -41,7 +41,7 @@ export function parseUrlState(search) {
     sortBy: sortBy(params.get("sort")),
     sortDirection: params.get("direction") === "desc" ? "desc" : "asc",
     currency: currency(params.get("currency")),
-    compareIds: compareIds(split(params.get("compare"))),
+    compareIds: split(params.get("compare")),
     detailId: params.get("detail") ?? "",
   };
 }
