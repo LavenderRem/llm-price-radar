@@ -262,3 +262,20 @@ test("daily pricing workflow schedules checks and opens a pull request", async (
   assert.match(workflow, /base:\s*codex\/model-price-site/);
   assert.doesNotMatch(workflow, /auto-merge|gh pr merge|deploy/i);
 });
+
+test("GitHub Pages workflow builds and deploys the static client after a base-branch update", async () => {
+  const workflowPath = new URL("../../.github/workflows/deploy-github-pages.yml", import.meta.url);
+  const workflow = await readFile(workflowPath, "utf8");
+  const viteConfig = await readFile(new URL("../vite.config.mjs", import.meta.url), "utf8");
+
+  assert.match(workflow, /push:/);
+  assert.match(workflow, /codex\/model-price-site/);
+  assert.match(workflow, /npm run build --prefix site/);
+  assert.match(workflow, /actions\/upload-pages-artifact@v3/);
+  assert.match(workflow, /actions\/deploy-pages@v4/);
+  assert.match(workflow, /pages:\s*write/);
+  assert.match(workflow, /id-token:\s*write/);
+  assert.match(workflow, /path:\s*site\/dist\/client/);
+  assert.match(viteConfig, /GITHUB_ACTIONS/);
+  assert.match(viteConfig, /llm-price-radar/);
+});
