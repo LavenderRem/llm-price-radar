@@ -83,8 +83,18 @@ test("fetchOfficialSource returns fixture content for a successful HTTPS respons
 
 test("fetchOfficialSource rejects non-success responses", async () => {
   await assert.rejects(
-    fetchOfficialSource("https://developers.openai.com/api/docs/pricing", async () => ({ ok: false })),
-    /source request failed: https:\/\/developers\.openai\.com\/api\/docs\/pricing/,
+    fetchOfficialSource("https://developers.openai.com/api/docs/pricing", async () => ({ ok: false, status: 503 })),
+    /source request failed: https:\/\/developers\.openai\.com\/api\/docs\/pricing \(HTTP 503\)/,
+  );
+});
+
+test("fetchOfficialSource identifies the official URL for network failures", async () => {
+  await assert.rejects(
+    fetchOfficialSource(
+      "https://developers.openai.com/api/docs/pricing",
+      async () => { throw new Error("socket unavailable"); },
+    ),
+    /source request failed: https:\/\/developers\.openai\.com\/api\/docs\/pricing \(socket unavailable\)/,
   );
 });
 
@@ -143,10 +153,30 @@ test("checkPricing persists a changed official source and its report", async () 
     assert.match(result.report, /OpenAI/);
     assert.match(await readFile(reportPath, "utf8"), /OpenAI/);
     assert.deepEqual(JSON.parse(await readFile(statePath, "utf8")), {
+      sourceScope: "providers[].officialPricingUrl",
       sources: {
         [openAiSource.sourceUrl]: result.entries[0].fingerprint,
       },
     });
+  });
+});
+
+test("checkPricing uses each provider's existing official pricing URL by default", async () => {
+  await withTemporaryPaths(async ({ statePath, reportPath }) => {
+    const requestedUrls = [];
+    const result = await checkPricing({
+      dryRun: true,
+      fetchImpl: async (sourceUrl) => {
+        requestedUrls.push(sourceUrl);
+        return { ok: true, text: async () => "current official price" };
+      },
+      now: "2026-08-07T00:00:00.000Z",
+      statePath,
+      reportPath,
+    });
+
+    assert.deepEqual(requestedUrls.sort(), providers.map((provider) => provider.officialPricingUrl).sort());
+    assert.deepEqual(result.entries.map((entry) => entry.sourceUrl).sort(), providers.map((provider) => provider.officialPricingUrl).sort());
   });
 });
 

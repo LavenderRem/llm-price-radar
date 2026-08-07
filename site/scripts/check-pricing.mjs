@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { models, providers } from "../src/data/catalog.js";
+import { providers } from "../src/data/catalog.js";
 import {
   assertSourceResult,
   buildSyncReport,
@@ -14,22 +14,11 @@ const defaultStatePath = fileURLToPath(new URL("../data/pricing-source-state.jso
 const defaultReportPath = fileURLToPath(new URL("../data/pricing-sync-report.md", import.meta.url));
 
 function catalogSources() {
-  const providerNameById = new Map(providers.map((provider) => [provider.id, provider.name]));
-  const sources = new Map();
-
-  for (const model of models) {
-    for (const price of model.pricing) {
-      if (!sources.has(price.sourceUrl)) {
-        sources.set(price.sourceUrl, {
-          providerId: model.providerId,
-          providerName: providerNameById.get(model.providerId),
-          sourceUrl: price.sourceUrl,
-        });
-      }
-    }
-  }
-
-  return [...sources.values()];
+  return providers.map((provider) => ({
+    providerId: provider.id,
+    providerName: provider.name,
+    sourceUrl: provider.officialPricingUrl,
+  }));
 }
 
 async function readState(statePath) {
@@ -47,11 +36,13 @@ async function readState(statePath) {
 
 function renderReport({ entries, fetchedAt }) {
   const lines = [
-    "# 每日价格来源检查报告",
+    "# 每日服务商官方定价页检查报告",
+    "",
+    "检查对象：目录中每个服务商的官方定价页，每个服务商每天检查一次。",
     "",
     `检查时间：${fetchedAt}`,
     "",
-    "| 服务商 | 官方来源 | 内容指纹 | 状态 |",
+    "| 服务商 | 官方定价页 | 内容指纹 | 状态 |",
     "| --- | --- | --- | --- |",
   ];
 
@@ -85,6 +76,7 @@ export async function checkPricing({
   const changed = entries.some((entry) => entry.changed);
   const report = renderReport(buildSyncReport(entries, now));
   const nextState = {
+    sourceScope: "providers[].officialPricingUrl",
     sources: Object.fromEntries(entries.map((entry) => [entry.sourceUrl, entry.fingerprint])),
   };
 

@@ -30,7 +30,7 @@ export async function fetchOfficialSource(sourceUrl, fetchImpl = fetch, { timeou
   try {
     const response = await Promise.race([fetchImpl(sourceUrl, { signal: controller.signal }), timeout]);
     if (!response.ok) {
-      throw new Error(`source request failed: ${sourceUrl}`);
+      throw new Error(`source request failed: ${sourceUrl} (HTTP ${response.status ?? "unknown"})`);
     }
 
     return await Promise.race([response.text(), timeout]);
@@ -38,7 +38,10 @@ export async function fetchOfficialSource(sourceUrl, fetchImpl = fetch, { timeou
     if (timedOut) {
       throw new Error(`source request timed out after ${timeoutMs}ms: ${sourceUrl}`);
     }
-    throw error;
+    if (error instanceof Error && error.message.startsWith("source request failed:")) {
+      throw error;
+    }
+    throw new Error(`source request failed: ${sourceUrl} (${error instanceof Error ? error.message : String(error)})`);
   } finally {
     clearTimeout(timeoutId);
   }
