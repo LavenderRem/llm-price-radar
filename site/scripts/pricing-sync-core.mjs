@@ -5,19 +5,43 @@ const officialHostByProvider = new Map(
   providers.map((provider) => [provider.id, new URL(provider.officialPricingUrl).hostname]),
 );
 
-export async function fetchOfficialSource(sourceUrl, fetchImpl = fetch) {
+export async function fetchOfficialSource(sourceUrl, fetchImpl = fetch, { timeoutMs = 15_000 } = {}) {
   try {
     if (new URL(sourceUrl).protocol !== "https:") throw new Error();
   } catch {
     throw new Error(`invalid source URL: ${sourceUrl}`);
   }
 
-  const response = await fetchImpl(sourceUrl);
-  if (!response.ok) {
-    throw new Error(`source request failed: ${sourceUrl}`);
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    throw new Error(`invalid source timeout: ${timeoutMs}`);
   }
 
-  return response.text();
+  const controller = new AbortController();
+  let timedOut = false;
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+      reject(new Error(`source request timed out after ${timeoutMs}ms: ${sourceUrl}`));
+    }, timeoutMs);
+  });
+
+  try {
+    const response = await Promise.race([fetchImpl(sourceUrl, { signal: controller.signal }), timeout]);
+    if (!response.ok) {
+      throw new Error(`source request failed: ${sourceUrl}`);
+    }
+
+    return await Promise.race([response.text(), timeout]);
+  } catch (error) {
+    if (timedOut) {
+      throw new Error(`source request timed out after ${timeoutMs}ms: ${sourceUrl}`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 export const fingerprint = (content) => createHash("sha256").update(content).digest("hex");

@@ -69,10 +69,11 @@ export async function checkPricing({
   reportPath = defaultReportPath,
   sourceEntries = catalogSources(),
   statePath = defaultStatePath,
+  timeoutMs = 15_000,
 } = {}) {
   const priorState = await readState(statePath);
   const fetched = await Promise.all(sourceEntries.map(async (entry) => {
-    const content = await fetchOfficialSource(entry.sourceUrl, fetchImpl);
+    const content = await fetchOfficialSource(entry.sourceUrl, fetchImpl, { timeoutMs });
     assertSourceResult({ ...entry, content });
     return { ...entry, fingerprint: fingerprint(content) };
   }));

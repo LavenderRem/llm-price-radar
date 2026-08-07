@@ -173,6 +173,36 @@ test("checkPricing leaves persistent files unchanged when a source request fails
   });
 });
 
+test("checkPricing aborts timed out source requests without changing persistent files", async () => {
+  await withTemporaryPaths(async ({ statePath, reportPath }) => {
+    const originalState = '{"sources":{"https://existing.example":"unchanged"}}\n';
+    const originalReport = "# Existing report\n";
+    await writeFile(statePath, originalState);
+    await writeFile(reportPath, originalReport);
+
+    await assert.rejects(
+      checkPricing({
+        fetchImpl: async (_sourceUrl, { signal } = {}) => new Promise((_, reject) => {
+          const fallback = setTimeout(() => reject(new Error("fetch did not receive an abort signal")), 25);
+          signal?.addEventListener("abort", () => {
+            clearTimeout(fallback);
+            reject(signal.reason);
+          }, { once: true });
+        }),
+        now: "2026-08-07T00:00:00.000Z",
+        sourceEntries: [openAiSource],
+        statePath,
+        reportPath,
+        timeoutMs: 5,
+      }),
+      /source request timed out after 5ms/,
+    );
+
+    assert.equal(await readFile(statePath, "utf8"), originalState);
+    assert.equal(await readFile(reportPath, "utf8"), originalReport);
+  });
+});
+
 test("checkPricing dry run detects a change without persisting files", async () => {
   await withTemporaryPaths(async ({ statePath, reportPath }) => {
     const result = await checkPricing({
