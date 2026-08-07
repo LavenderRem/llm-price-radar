@@ -35,19 +35,21 @@ function formatMonthlyCost(value, currency) {
   })}`;
 }
 
-export function ComparisonTray({ models, selectedIds, onRemove, onOpenComparison, onOpenCost }) {
+export function ComparisonTray({ models, selectedIds, onRemove, onClear, onOpenComparison, onOpenCost }) {
   const modelById = new Map(models.map((model) => [model.id, model]));
   const selectedModels = selectedIds.map((id) => modelById.get(id)).filter(Boolean);
   const estimates = selectedModels.map((model) => ({ model, total: monthlyCost(model) }));
   const availableTotals = estimates.map(({ total }) => total).filter(Number.isFinite);
   const lowestTotal = availableTotals.length > 0 ? Math.min(...availableTotals) : null;
+  const combinedTotal = availableTotals.reduce((sum, total) => sum + total, 0);
 
   return (
     <section className="comparison-tray" aria-label="对比清单">
       <div className="comparison-tray-heading">
-        <strong>对比清单</strong>
-        <span>{selectedModels.length}/3</span>
+        <strong>对比清单（{selectedModels.length}/3）</strong>
+        {selectedModels.length > 0 ? <button type="button" onClick={onClear}>清空</button> : <span>{selectedModels.length}/3</span>}
       </div>
+      <p className="comparison-help">最多选择 3 个模型进行对比</p>
       {selectedModels.length === 0 ? (
         <p className="comparison-empty">最多选择 3 个模型进行对比</p>
       ) : (
@@ -55,13 +57,18 @@ export function ComparisonTray({ models, selectedIds, onRemove, onOpenComparison
           <ul className="comparison-selection-list">
             {selectedModels.map((model) => (
               <li key={model.id}>
+                <input
+                  type="checkbox"
+                  aria-label={`选择 ${model.displayName}`}
+                  checked
+                  onChange={() => onRemove(model.id)}
+                />
                 <ProviderLogo providerId={model.providerId} />
                 <div>
-                  <strong>{model.displayName}</strong>
-                  <span>{model.providerName}</span>
+                  <strong>{model.providerName}</strong>
+                  <span>{model.displayName}</span>
                   <small>
-                    输入 {formatPrice(model.normalized.input, model.normalized.currency)} ·
-                    输出 {formatPrice(model.normalized.output, model.normalized.currency)}
+                    {formatPrice(model.normalized.input, model.normalized.currency)} / {formatPrice(model.normalized.output, model.normalized.currency)}
                   </small>
                 </div>
                 <button type="button" aria-label={`移除 ${model.displayName}`} onClick={() => onRemove(model.id)}>
@@ -72,9 +79,14 @@ export function ComparisonTray({ models, selectedIds, onRemove, onOpenComparison
           </ul>
           <section className="comparison-monthly-summary" aria-label="参考月成本">
             <header>
-              <strong>参考月成本</strong>
-              <span>参考月用量：输入 10M / 输出 5M</span>
+              <strong>月成本估算</strong>
+              <span>使用您的用量估算</span>
+              <span className="sr-only">参考月用量：输入 10M / 输出 5M</span>
             </header>
+            <div className="comparison-usage-fields" aria-label="参考用量">
+              <label>输入 Token<input value="10,000,000" readOnly /></label>
+              <label>输出 Token<input value="5,000,000" readOnly /></label>
+            </div>
             <ul>
               {estimates.map(({ model, total }) => (
                 <li key={model.id}>
@@ -84,9 +96,10 @@ export function ComparisonTray({ models, selectedIds, onRemove, onOpenComparison
                 </li>
               ))}
             </ul>
-            <p>仅比较相同公开价格与参考用量，不代表模型能力排序。</p>
+            <p className="comparison-total">预计月总成本（{selectedModels.length} 个模型）</p>
+            <strong className="comparison-grand-total">{formatMonthlyCost(combinedTotal, selectedModels[0]?.normalized.currency ?? "CNY")}</strong>
           </section>
-          <button className="comparison-cost-summary" type="button" onClick={onOpenCost}>
+          <button className="comparison-cost-summary sr-only" type="button" onClick={onOpenCost}>
             前往成本估算
           </button>
           <button className="comparison-open" type="button" onClick={onOpenComparison}>

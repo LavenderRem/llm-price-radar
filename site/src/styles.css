@@ -134,6 +134,16 @@ a:focus-visible {
   background: var(--primary);
 }
 
+.nav-button:last-child {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .header-tools {
   display: flex;
   align-items: center;
@@ -184,18 +194,18 @@ a:focus-visible {
 .catalog-layout {
   display: grid;
   min-height: calc(100vh - 60px);
-  grid-template-columns: minmax(0, 1fr) 280px;
+  grid-template-columns: minmax(0, 1fr) 284px;
   background: var(--surface);
 }
 
 .catalog-main {
   min-width: 0;
-  padding: 28px 18px 18px;
+  padding: 28px 14px 18px 18px;
   border-right: 1px solid var(--line);
 }
 
 .comparison-slot {
-  padding: 28px 15px 20px;
+  padding: 28px 17px 20px;
   background: #fbfcfe;
 }
 
@@ -245,6 +255,14 @@ a:focus-visible {
   color: var(--muted);
 }
 
+.comparison-tray-heading button {
+  padding: 0;
+  color: var(--primary);
+  background: transparent;
+  border: 0;
+  font-size: 14px;
+}
+
 .comparison-empty {
   margin: 18px 0 0;
   padding: 28px 14px;
@@ -252,6 +270,12 @@ a:focus-visible {
   background: white;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
+}
+
+.comparison-help {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .comparison-selection-list {
@@ -265,12 +289,20 @@ a:focus-visible {
 .comparison-selection-list li {
   display: grid;
   align-items: start;
-  padding: 10px;
+  min-height: 90px;
+  padding: 12px 10px;
   background: white;
   border: 1px solid var(--line);
   border-radius: 7px;
-  grid-template-columns: 28px minmax(0, 1fr) auto;
+  grid-template-columns: 18px 28px minmax(0, 1fr) auto;
   gap: 8px;
+}
+
+.comparison-selection-list input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  margin: 5px 0 0;
+  accent-color: var(--primary);
 }
 
 .comparison-selection-list li > div {
@@ -289,6 +321,14 @@ a:focus-visible {
 .comparison-selection-list small {
   color: var(--muted);
   font-size: 11px;
+}
+
+.comparison-selection-list small {
+  margin-top: 4px;
+  color: var(--primary);
+  font-family: var(--font-number);
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .comparison-selection-list .provider-logo {
@@ -332,10 +372,53 @@ a:focus-visible {
   font-size: 14px;
 }
 
+.comparison-usage-fields {
+  display: grid;
+  margin-top: 14px;
+  gap: 10px;
+}
+
+.comparison-usage-fields label {
+  display: grid;
+  color: #46566d;
+  font-size: 12px;
+  gap: 5px;
+}
+
+.comparison-usage-fields input {
+  width: 100%;
+  height: 34px;
+  padding: 0 9px;
+  color: #34435a;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-family: var(--font-number);
+  font-size: 12px;
+}
+
 .comparison-monthly-summary header span,
 .comparison-monthly-summary p {
   color: var(--muted);
   font-size: 10px;
+}
+
+.comparison-total {
+  padding-top: 13px;
+  margin: 14px 0 0 !important;
+  color: #1b2a40 !important;
+  border-top: 1px solid var(--line);
+  font-size: 14px !important;
+  font-weight: 700;
+}
+
+.comparison-grand-total {
+  display: block;
+  margin-top: 4px;
+  color: var(--primary);
+  font-family: var(--font-number);
+  font-size: 28px;
+  text-align: right;
 }
 
 .comparison-monthly-summary ul {
@@ -390,6 +473,10 @@ a:focus-visible {
   border: 1px solid var(--primary);
   border-radius: 7px;
   font-weight: 700;
+}
+
+.comparison-open {
+  margin-top: 22px;
 }
 
 .comparison-overlay {
@@ -643,8 +730,8 @@ a:focus-visible {
   display: grid;
   align-items: center;
   min-height: 44px;
-  grid-template-columns: 250px minmax(390px, 1fr) 1px auto auto;
-  gap: 20px;
+  grid-template-columns: 256px 366px 1px auto;
+  gap: 22px;
 }
 
 .filter-drawer {
@@ -722,9 +809,65 @@ a:focus-visible {
   min-width: 0;
 }
 
+.provider-filter .filter-group-label {
+  display: none;
+}
+
+.provider-icon-options {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.provider-icon-options > button,
+.provider-icon-option {
+  position: relative;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  place-items: center;
+  color: #1b2a40;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.provider-icon-option {
+  cursor: pointer;
+}
+
+.provider-icon-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.provider-icon-option .provider-logo {
+  width: 22px;
+  height: 22px;
+}
+
+.provider-icon-options > button.is-active,
+.provider-icon-option:has(input:checked) {
+  color: #1265e9;
+  background: #f9fbff;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+.provider-icon-option:has(input:focus-visible) {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+
 .capability-filter {
   display: flex;
   align-items: center;
+  gap: 25px;
 }
 
 .segmented-options {
@@ -745,22 +888,30 @@ a:focus-visible {
   min-width: 56px;
   padding: 0 12px;
   place-items: center;
-  color: #26344a;
+  color: #1b2a40;
   background: white;
   border: 0;
   border-right: 1px solid var(--line);
   white-space: nowrap;
 }
 
-.segmented-options > :last-child {
-  border-right: 0;
+.capability-filter .segmented-options > button,
+.capability-filter .segment-option {
+  min-width: 67px;
 }
 
-.provider-filter .segmented-options > button,
-.provider-filter .segment-option {
-  min-width: 0;
-  padding-inline: 4px;
-  font-size: 12px;
+.capability-filter .segment-option:last-child {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.segmented-options > :last-child {
+  border-right: 0;
 }
 
 .segment-option input {
@@ -775,7 +926,19 @@ a:focus-visible {
   z-index: 1;
   color: #1265e9;
   background: #f9fbff;
-  box-shadow: inset 0 0 0 1px var(--primary);
+  box-shadow: inset 0 0 0 1.5px var(--primary);
+  border-radius: 6px;
+}
+
+.segmented-options > button.is-active::after,
+.segment-option:has(input:checked)::after {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  border: 1.5px solid var(--primary);
+  border-radius: 6px;
 }
 
 .segment-option:has(input:focus-visible) {
@@ -792,6 +955,17 @@ a:focus-visible {
 
 .more-filters {
   position: relative;
+}
+
+.more-filters,
+.clear-filters {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .filter-bar .clear-filters {
+    display: none;
+  }
 }
 
 .more-filters summary {
@@ -865,7 +1039,7 @@ a:focus-visible {
 .pricing-note {
   display: flex;
   align-items: center;
-  min-height: 52px;
+  min-height: 62px;
   margin: 0;
   color: var(--muted);
   gap: 6px;
@@ -929,15 +1103,22 @@ a:focus-visible {
 .pricing-table tbody tr.is-selected {
   position: relative;
   background: #f6fdff;
-  box-shadow: inset 0 1px 0 var(--accent), inset 0 -1px 0 var(--accent);
 }
 
-.pricing-table tbody tr.is-selected > :first-child {
-  box-shadow: inset 1px 0 0 var(--accent);
+.pricing-table tbody tr.is-selected > td {
+  background: #f6fdff;
+  border-top: 1.5px solid var(--accent);
+  border-bottom: 1.5px solid var(--accent);
 }
 
-.pricing-table tbody tr.is-selected > :last-child {
-  box-shadow: inset -1px 0 0 var(--accent);
+.pricing-table tbody tr.is-selected > td:first-child {
+  border-left: 1.5px solid var(--accent);
+  border-radius: 8px 0 0 8px;
+}
+
+.pricing-table tbody tr.is-selected > td:last-child {
+  border-right: 1.5px solid var(--accent);
+  border-radius: 0 8px 8px 0;
 }
 
 .pricing-table input[type="checkbox"],
@@ -1004,7 +1185,7 @@ a:focus-visible {
 .model-identity strong {
   color: #122138;
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .model-detail-button {
@@ -1013,6 +1194,7 @@ a:focus-visible {
   background: transparent;
   border: 0;
   font-size: 12px;
+  font-weight: 500;
   text-align: left;
 }
 

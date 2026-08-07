@@ -3,6 +3,7 @@ import RotateCcw from "lucide-react/dist/esm/icons/rotate-ccw.mjs";
 import Search from "lucide-react/dist/esm/icons/search.mjs";
 import SlidersHorizontal from "lucide-react/dist/esm/icons/sliders-horizontal.mjs";
 import X from "lucide-react/dist/esm/icons/x.mjs";
+import { ProviderLogo } from "./ProviderLogo.jsx";
 
 const capabilityOptions = [
   { id: "text", label: "文本" },
@@ -117,22 +118,25 @@ export function FilterBar({ state, providers, onChange, onClear }) {
 
         <div className="filter-group provider-filter" role="group" aria-labelledby="provider-filter-label">
           <span className="filter-group-label" id="provider-filter-label">服务商</span>
-          <div className="segmented-options">
+          <div className="provider-icon-options">
             <button
               className={state.providers.length === 0 ? "is-active" : ""}
               type="button"
+              aria-label="全部服务商"
+              aria-pressed={state.providers.length === 0}
               onClick={() => onChange({ providers: [] })}
             >
               全部
             </button>
             {providers.map((provider) => (
-              <label className="segment-option" key={provider.id}>
+              <label className="provider-icon-option" key={provider.id} title={provider.name}>
                 <input
                   type="checkbox"
                   checked={state.providers.includes(provider.id)}
                   onChange={() => onChange({ providers: toggle(state.providers, provider.id) })}
                 />
-                <span>{provider.name.replace("开放平台", "")}</span>
+                <ProviderLogo providerId={provider.id} />
+                <span className="sr-only">{provider.name}</span>
               </label>
             ))}
           </div>

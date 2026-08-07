@@ -219,6 +219,7 @@ export function App() {
               models={normalizedModels}
               selectedIds={state.compareIds}
               onRemove={removeFromComparison}
+              onClear={() => changeFilters({ compareIds: [] })}
               onOpenComparison={openComparison}
               onOpenCost={() => setView("calculator")}
             />

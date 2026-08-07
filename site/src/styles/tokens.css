@@ -16,6 +16,6 @@
   --space-4: 16px;
   --space-6: 24px;
   --space-8: 32px;
-  --font-ui: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-ui: "Microsoft YaHei UI", "PingFang SC", "Microsoft YaHei", Inter, sans-serif;
   --font-number: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
 }
