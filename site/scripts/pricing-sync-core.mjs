@@ -1,7 +1,14 @@
 import { createHash } from "node:crypto";
+import { providers } from "../src/data/catalog.js";
+
+const officialHostByProvider = new Map(
+  providers.map((provider) => [provider.id, new URL(provider.officialPricingUrl).hostname]),
+);
 
 export async function fetchOfficialSource(sourceUrl, fetchImpl = fetch) {
-  if (!/^https:\/\//.test(sourceUrl)) {
+  try {
+    if (new URL(sourceUrl).protocol !== "https:") throw new Error();
+  } catch {
     throw new Error(`invalid source URL: ${sourceUrl}`);
   }
 
@@ -16,17 +23,17 @@ export async function fetchOfficialSource(sourceUrl, fetchImpl = fetch) {
 export const fingerprint = (content) => createHash("sha256").update(content).digest("hex");
 
 export function assertSourceResult({ providerId, sourceUrl, content }) {
-  let hostname = "";
+  let url;
 
   try {
-    hostname = new URL(sourceUrl).hostname;
+    url = new URL(sourceUrl);
   } catch {
     // The invalid-source error below must include the provider id.
   }
 
-  const providerDomain = `${providerId}.com`;
+  const officialHost = officialHostByProvider.get(providerId);
 
-  if (!providerId || !hostname || (hostname !== providerDomain && !hostname.endsWith(`.${providerDomain}`)) || typeof content !== "string" || !content.trim()) {
+  if (!providerId || !officialHost || !url || url.protocol !== "https:" || url.hostname !== officialHost || typeof content !== "string" || !content.trim()) {
     throw new Error(`invalid source: ${providerId}`);
   }
 }
