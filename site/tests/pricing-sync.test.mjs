@@ -229,5 +229,6 @@ test("daily pricing workflow schedules checks and opens a pull request", async (
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /npm run pricing:check/);
   assert.match(workflow, /peter-evans\/create-pull-request@v7/);
+  assert.match(workflow, /base:\s*codex\/model-price-site/);
   assert.doesNotMatch(workflow, /auto-merge|gh pr merge|deploy/i);
 });

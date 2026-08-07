@@ -30,6 +30,7 @@ jobs:
         uses: peter-evans/create-pull-request@v7
         with:
           branch: automation/daily-pricing-update
+          base: codex/model-price-site
           commit-message: "chore(价格同步): 更新每日来源检查"
           title: "chore(价格同步): 更新每日来源检查"
           body: |
