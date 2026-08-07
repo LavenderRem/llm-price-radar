@@ -219,3 +219,15 @@ test("checkPricing dry run detects a change without persisting files", async () 
     await assert.rejects(readFile(reportPath, "utf8"), { code: "ENOENT" });
   });
 });
+
+test("daily pricing workflow schedules checks and opens a pull request", async () => {
+  const workflowPath = new URL("../../.github/workflows/daily-pricing-update.yml", import.meta.url);
+  const workflow = await readFile(workflowPath, "utf8");
+
+  assert.match(workflow, /schedule:/);
+  assert.match(workflow, /cron:\s*["']0 1 \* \* \*["']/);
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /npm run pricing:check/);
+  assert.match(workflow, /peter-evans\/create-pull-request@v7/);
+  assert.doesNotMatch(workflow, /auto-merge|gh pr merge|deploy/i);
+});

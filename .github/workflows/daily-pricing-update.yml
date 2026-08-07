@@ -1,0 +1,41 @@
+name: 每日价格来源检查
+
+on:
+  schedule:
+    - cron: "0 1 * * *"
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: 安装依赖
+        run: npm ci --prefix site
+
+      - name: 检查官方价格来源
+        run: npm run pricing:check --prefix site
+
+      - name: 创建或更新价格检查 PR
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: automation/daily-pricing-update
+          commit-message: "chore(价格同步): 更新每日来源检查"
+          title: "chore(价格同步): 更新每日来源检查"
+          body: |
+            自动检查发现官方价格来源内容发生变化。
+
+            请人工核对 `site/data/pricing-sync-report.md`，确认价格变动后再更新目录数据并合并。
+          add-paths: |
+            site/data/pricing-source-state.json
+            site/data/pricing-sync-report.md
