@@ -41,12 +41,18 @@ describe("coding plans catalog", () => {
     }
   });
 
-  it("rejects an unknown provider, an HTTP source, a missing coding surface, and displayable general chat", () => {
+  it("rejects an unknown provider, non-official sources, a missing coding surface, and displayable general chat", () => {
     expect(() => validateCodingPlans([{ ...validPlan, providerId: "unknown" }], providers))
       .toThrow("codingPlans[0].providerId");
     expect(() => validateCodingPlans([{ ...validPlan, sourceUrl: "http://cursor.com/pricing" }], providers))
       .toThrow("codingPlans[0].sourceUrl");
+    expect(() => validateCodingPlans([{ ...validPlan, officialUrl: "https://example.com/pricing" }], providers))
+      .toThrow("codingPlans[0].officialUrl");
+    expect(() => validateCodingPlans([{ ...validPlan, sourceUrl: "https://example.com/pricing" }], providers))
+      .toThrow("codingPlans[0].sourceUrl");
     expect(() => validateCodingPlans([{ ...validPlan, codingSurfaces: [] }], providers))
+      .toThrow("codingPlans[0].codingSurfaces");
+    expect(() => validateCodingPlans([{ ...validPlan, codingSurfaces: ["Chat"] }], providers))
       .toThrow("codingPlans[0].codingSurfaces");
     expect(() => validateCodingPlans([{ ...validPlan, planType: "general-chat" }], providers))
       .toThrow("codingPlans[0].planType");

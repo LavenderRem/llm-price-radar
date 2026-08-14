@@ -5,11 +5,15 @@ function required(value, path) {
 function httpsUrl(value, path) {
   required(value, path);
   try {
-    if (new URL(value).protocol !== "https:") throw new Error(path);
+    const url = new URL(value);
+    if (url.protocol !== "https:") throw new Error(path);
+    return url;
   } catch {
     throw new Error(path);
   }
 }
+
+const CODING_SURFACES = new Set(["IDE", "CLI", "Agent"]);
 
 function validDate(value, path) {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error(path);
@@ -32,14 +36,17 @@ export function validateCodingPlans(plans, providers) {
   if (!Array.isArray(plans) || plans.length === 0) throw new Error("codingPlans");
   if (!Array.isArray(providers)) throw new Error("providers");
 
-  const providerIds = new Set(providers.map((provider) => provider.id));
+  const providerHostById = new Map(providers.map((provider, index) => [
+    provider.id,
+    httpsUrl(provider.officialPricingUrl, `providers[${index}].officialPricingUrl`).hostname,
+  ]));
   const planIds = new Set();
   for (const [index, plan] of plans.entries()) {
     const base = `codingPlans[${index}]`;
     required(plan.id, `${base}.id`);
     if (planIds.has(plan.id)) throw new Error(`${base}.id`);
     planIds.add(plan.id);
-    if (!providerIds.has(plan.providerId)) throw new Error(`${base}.providerId`);
+    if (!providerHostById.has(plan.providerId)) throw new Error(`${base}.providerId`);
     required(plan.productName, `${base}.productName`);
     required(plan.planName, `${base}.planName`);
     if (plan.planType !== "individual-coding") throw new Error(`${base}.planType`);
@@ -56,13 +63,21 @@ export function validateCodingPlans(plans, providers) {
     } else if (plan.allowancePolicy.status !== "published" || !plan.allowancePolicy.label) {
       throw new Error(`${base}.allowancePolicy`);
     }
-    if (!Array.isArray(plan.codingSurfaces) || plan.codingSurfaces.length === 0) {
+    if (!Array.isArray(plan.codingSurfaces)
+      || plan.codingSurfaces.length === 0
+      || plan.codingSurfaces.some((surface) => !CODING_SURFACES.has(surface))) {
       throw new Error(`${base}.codingSurfaces`);
     }
-    httpsUrl(plan.officialUrl, `${base}.officialUrl`);
+    const officialUrl = httpsUrl(plan.officialUrl, `${base}.officialUrl`);
+    if (officialUrl.hostname !== providerHostById.get(plan.providerId)) {
+      throw new Error(`${base}.officialUrl`);
+    }
     validDate(plan.verifiedAt, `${base}.verifiedAt`);
     required(plan.officialSummary, `${base}.officialSummary`);
-    httpsUrl(plan.sourceUrl, `${base}.sourceUrl`);
+    const sourceUrl = httpsUrl(plan.sourceUrl, `${base}.sourceUrl`);
+    if (sourceUrl.hostname !== providerHostById.get(plan.providerId)) {
+      throw new Error(`${base}.sourceUrl`);
+    }
   }
 }
 
