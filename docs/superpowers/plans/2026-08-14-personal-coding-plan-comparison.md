@@ -269,19 +269,24 @@ git commit -m "feat(套餐): 补齐多服务商官方套餐"
 **Interfaces:**
 
 - Consumes: Task 1 的 `codingPlans` 中 `sourceUrl`、`officialUrl` 和关键事实字段。
-- Produces: `codingPlanSources()`；状态文件中的 `codingPlanSources` 映射；检查报告中单独的「个人编程套餐」范围；`fingerprintCodingPlanFacts(plan)`。
+- Produces: `codingPlanSources()`；状态文件中的 `codingPlanPageSources` 与 `codingPlanPriceSources` 映射；检查报告中单独的「个人编程套餐」范围；`fingerprintCodingPlanFacts(plan)`。
 
 - [ ] **Step 1: 写出套餐关键事实指纹的失败测试**
 
 ```js
 import { fingerprintCodingPlanFacts } from "../scripts/pricing-sync-core.mjs";
 
-test("coding plan fingerprint ignores page copy but changes for price facts", () => {
+test("coding plan catalog fingerprint ignores copy but changes for price facts", () => {
   const current = { id: "cursor-pro", price: { amount: 20, currency: "USD", period: "month" }, includedUsage: { label: "官方额度" }, allowancePolicy: { label: "按官方规则" }, codingSurfaces: ["ide"] };
   expect(fingerprintCodingPlanFacts({ ...current, officialSummary: "新版营销文案" }))
     .toBe(fingerprintCodingPlanFacts(current));
   expect(fingerprintCodingPlanFacts({ ...current, price: { ...current.price, amount: 25 } }))
     .not.toBe(fingerprintCodingPlanFacts(current));
+});
+
+test("a coding plan source change is reported as a candidate without rewriting the catalog", async () => {
+  const result = await checkPricing({ dryRun: true, codingPlanEntries: [codingPlanSource], fetchImpl: async () => ({ ok: true, text: async () => "Pro $20/month" }) });
+  expect(result.codingPlanEntries[0].priceChanged).toBe(true);
 });
 
 test("a failed coding plan source leaves state and report untouched", async () => {
@@ -309,7 +314,7 @@ export function fingerprintCodingPlanFacts(plan) {
 }
 ```
 
-`checkPricing` 必须保留现有服务商来源行为，并为套餐来源增加独立状态键与报告分段。对同一 `sourceUrl` 的套餐请求最多抓取一次，随后对每个套餐的结构化关键事实生成指纹；不要从动态页面文本重新推断目录字段。若任何自动来源失败，整个检查抛错且不写入任何状态或报告。`--dry-run` 仍只输出报告而不落盘。更新 README，明确套餐目录的日期是人工核验日期，每日任务只发现候选变化并通过 PR 供审核。
+`checkPricing` 必须保留现有服务商来源行为，并为套餐来源增加独立状态键与报告分段。对同一 `sourceUrl` 的套餐请求最多抓取一次，再用既有 `extractPricingEvidence(content)` 生成官网价格证据指纹；这只用于发现“候选价格变更”，不从动态页面文本自动写回套餐字段。`fingerprintCodingPlanFacts(plan)` 仅用于目录的结构化关键事实审计。任一自动来源失败时，整个检查抛错且不写入任何状态或报告；显式标记为 `manual` 的套餐来源仅在报告中提示人工核验。`--dry-run` 仍只输出报告而不落盘。更新 README，明确套餐目录的日期是人工核验日期，每日任务只发现候选变化并通过 PR 供审核。
 
 - [ ] **Step 4: 运行同步、前端与构建验证**
 
