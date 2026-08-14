@@ -1,8 +1,11 @@
 import { createHash } from "node:crypto";
 import { providers } from "../src/data/catalog.js";
 
-const officialHostByProvider = new Map(
-  providers.map((provider) => [provider.id, new URL(provider.officialPricingUrl).hostname]),
+const officialHostsByProvider = new Map(
+  providers.map((provider) => [
+    provider.id,
+    new Set([new URL(provider.officialPricingUrl).hostname, ...(provider.officialDomains ?? [])]),
+  ]),
 );
 
 export async function fetchOfficialSource(sourceUrl, fetchImpl = fetch, { timeoutMs = 15_000 } = {}) {
@@ -49,6 +52,16 @@ export async function fetchOfficialSource(sourceUrl, fetchImpl = fetch, { timeou
 
 export const fingerprint = (content) => createHash("sha256").update(content).digest("hex");
 
+export function fingerprintCodingPlanFacts(plan) {
+  return fingerprint(JSON.stringify({
+    price: plan.price,
+    includedUsage: plan.includedUsage,
+    allowancePolicy: plan.allowancePolicy,
+    codingSurfaces: [...plan.codingSurfaces].sort(),
+    officialUrl: plan.officialUrl,
+  }));
+}
+
 export function extractPricingEvidence(content) {
   const visibleText = content
     .replace(/<!--[\s\S]*?-->/g, " ")
@@ -80,9 +93,9 @@ export function assertSourceResult({ providerId, sourceUrl, content }) {
     // The invalid-source error below must include the provider id.
   }
 
-  const officialHost = officialHostByProvider.get(providerId);
+  const officialHosts = officialHostsByProvider.get(providerId);
 
-  if (!providerId || !officialHost || !url || url.protocol !== "https:" || url.hostname !== officialHost || typeof content !== "string" || !content.trim()) {
+  if (!providerId || !officialHosts || !url || url.protocol !== "https:" || !officialHosts.has(url.hostname) || typeof content !== "string" || !content.trim()) {
     throw new Error(`invalid source: ${providerId}`);
   }
 }

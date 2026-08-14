@@ -4,10 +4,16 @@
 
 ## 每日价格来源检查
 
-GitHub Actions 每日 UTC 01:00（北京时间 09:00）抓取目录中的官方价格来源，并比较内容指纹。
-检测到变化时，工作流只会创建或更新 `automation/daily-pricing-update` 拉取请求，附上 `site/data/pricing-sync-report.md` 供人工核对。
+GitHub Actions 每日 UTC 01:00（北京时间 09:00）抓取目录中的官方价格来源，并比较内容指纹。模型 API 定价页和个人编程套餐官方页使用独立的状态映射检查。
+检测到变化时，工作流只会创建或更新 `automation/daily-pricing-update` 拉取请求，附上 `site/data/pricing-sync-report.md` 供人工核对。套餐官网价格证据变化仅标记为候选变更，绝不会自动改写 `site/src/data/codingPlans.js`。
 
 工作流不会自动修改模型价格、合并拉取请求或发布站点。
+
+## 个人编程套餐核验边界
+
+`site/src/data/codingPlans.js` 中的 `verifiedAt` 是人工核验日期；月费、计费周期、包含用量、额度/超额规则、编程入口和官方链接均须在人工复核后通过 PR 更新。每日任务按相同 `sourceUrl` 只抓取一次，并以可提取的官网价格证据发现候选变化，不会从动态页面文本推断或写入套餐字段。
+
+腾讯 CodeBuddy 的套餐页当前不会向无人值守请求提供可提取的档位价格证据，因此被显式标为 `manual`：每日报告只提示人工核验，不发起自动抓取，也不会因其超时或空证据阻断默认模型 API 日检。其他自动来源访问失败时，检查会失败且不会写入状态或报告。
 
 ## 运行边界
 
