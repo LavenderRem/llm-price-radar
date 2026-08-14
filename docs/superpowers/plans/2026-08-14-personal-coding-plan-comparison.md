@@ -192,7 +192,71 @@ git add site/src/components/CodingPlansView.jsx site/src/components/AppHeader.js
 git commit -m "feat(套餐): 增加精确数据对比页面"
 ```
 
-## Task 3: 将套餐关键事实接入每日检查
+## Task 3: 补齐多服务商官方套餐目录
+
+**Files:**
+
+- Modify: `site/src/data/catalog.js`
+- Modify: `site/src/data/codingPlans.js`
+- Modify: `site/src/domain/codingPlans.js`
+- Modify: `site/tests/codingPlans.test.js`
+- Modify: `site/tests/catalogValidation.test.js`
+
+**Interfaces:**
+
+- Consumes: 官方套餐页已核验的价格、额度和入口事实；现有 `providers` 与 `codingPlans`。
+- Produces: Cursor、Claude Code、TRAE、CodeBuddy 的多档位个人编程套餐记录；`provider.officialDomains` 允许一个官方服务商使用多个受信任官方域名。
+
+- [ ] **Step 1: 写出目录覆盖和官方多域名的失败测试**
+
+```js
+test("catalog includes verified personal coding plans from multiple providers", () => {
+  expect(new Set(codingPlans.map((plan) => plan.providerId))).toEqual(expect.arrayContaining([
+    "cursor", "anthropic", "trae", "codebuddy",
+  ]));
+  expect(codingPlans.some((plan) => plan.productName === "Gemini Code Assist")).toBe(false);
+});
+
+test("coding plan source may use only a declared official provider domain", () => {
+  const plan = { ...codingPlans[0], providerId: "anthropic", officialUrl: "https://support.claude.com/en/articles/11049762-choose-a-claude-plan", sourceUrl: "https://support.claude.com/en/articles/11049762-choose-a-claude-plan" };
+  expect(() => validateCodingPlans([plan], providers)).not.toThrow();
+  expect(() => validateCodingPlans([{ ...plan, sourceUrl: "https://example.com/pricing" }], providers)).toThrow(/sourceUrl/);
+});
+```
+
+- [ ] **Step 2: 运行测试，确认现有单一 Cursor 目录失败**
+
+Run: `npm test --prefix site -- codingPlans.test.js catalogValidation.test.js`
+
+Expected: FAIL，提示缺少 Anthropic、TRAE 或 CodeBuddy 的套餐记录，或尚不支持 `officialDomains` 中的官方来源。
+
+- [ ] **Step 3: 录入官方可核验套餐并最小扩展来源校验**
+
+在 provider 上新增可选 `officialDomains`，以 HTTPS hostname 列表验证套餐来源；未声明时仍只允许 `officialPricingUrl` hostname。该字段仅用于套餐目录校验，不得改变既有模型 API 定价页的日检来源。
+
+录入以下截至 `2026-08-14` 的官方可核验事实：
+
+- Claude Code：Claude Pro（USD 20/月或 USD 200/年）、Max 5x（USD 100/月）、Max 20x（USD 200/月）；官方说明其用量包适用于 Claude Code。额度表达为官方容量倍率或可购买的用量包，不换算为请求数。
+- TRAE IDE：Lite（USD 3/月，USD 5 基础用量加赠送用量）、Pro（USD 10/月）；Pro+ 与 Ultra 仅在官方页面明确存在但未公开逐档价格时保留为 `unpublished`，不推算。入口为 IDE / Agent。
+- 腾讯 CodeBuddy 国内个人版：体验版（CNY 0/月，500 积分）、标准版（CNY 99/月，基础 2000 + 赠送 2000 积分）、高级版（CNY 199/月，基础 4000 + 赠送 5000 积分）、旗舰版（CNY 999/月，基础 20000 + 赠送 30000 积分）；付费档可有 1000 积分 / CNY 50 的 1 个月加量包。
+- Cursor 保留已有 Free、Pro、Pro+、Ultra，未公开价格继续为 `unpublished`。
+
+不要录入 Gemini Code Assist for individuals：官方已说明消费者个人访问已弃用。不要在没有可访问的 OpenAI 官方文档明确个人 Codex 套餐价格与权益时录入 OpenAI 条目；这不是以通用聊天订阅替代编程套餐。
+
+- [ ] **Step 4: 运行目录测试，确认通过**
+
+Run: `npm test --prefix site -- codingPlans.test.js catalogValidation.test.js`
+
+Expected: PASS；所有展示记录均为个人编程套餐、每档位独立、来源属于声明的官方域名；已下线个人方案不展示。
+
+- [ ] **Step 5: 提交本任务**
+
+```bash
+git add site/src/data/catalog.js site/src/data/codingPlans.js site/src/domain/codingPlans.js site/tests/codingPlans.test.js site/tests/catalogValidation.test.js
+git commit -m "feat(套餐): 补齐多服务商官方套餐"
+```
+
+## Task 4: 将套餐关键事实接入每日检查
 
 **Files:**
 
@@ -260,7 +324,7 @@ git add site/scripts/check-pricing.mjs site/scripts/pricing-sync-core.mjs site/t
 git commit -m "feat(套餐): 接入每日官方来源检查"
 ```
 
-## Task 4: 端到端回归与文档核对
+## Task 5: 端到端回归与文档核对
 
 **Files:**
 
@@ -268,7 +332,7 @@ git commit -m "feat(套餐): 接入每日官方来源检查"
 
 **Interfaces:**
 
-- Consumes: Tasks 1–3 的已实现页面、目录和检查命令。
+- Consumes: Tasks 1–4 的已实现页面、目录和检查命令。
 - Produces: 对核心用户路径、数据更新边界和 GitHub Pages 构建的回归证据。
 
 - [ ] **Step 1: 补充公开数据与更新边界说明**
