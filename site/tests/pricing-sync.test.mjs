@@ -29,6 +29,20 @@ test("pricing evidence ignores marketing-only pricing copy", () => {
   );
 });
 
+test("pricing evidence joins an amount and its currency split across adjacent nodes", () => {
+  assert.match(
+    extractPricingEvidence("<div><span>12</span><span>元</span></div>"),
+    /12 元/,
+  );
+});
+
+test("pricing evidence keeps a price when an empty layout span separates its currency", () => {
+  assert.match(
+    extractPricingEvidence("<p>12<span class=\"help-letter-space\"></span>元</p>"),
+    /12 元/,
+  );
+});
+
 test("coding plan catalog fingerprint ignores copy but changes for price facts", () => {
   const current = {
     id: "cursor-pro",

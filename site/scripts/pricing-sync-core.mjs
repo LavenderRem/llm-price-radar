@@ -65,6 +65,7 @@ export function fingerprintCodingPlanFacts(plan) {
 
 export function extractPricingEvidence(content) {
   const visibleText = content
+    .replace(/(\d+(?:[.,]\d+)?)<\/[^>]+>\s*<[^>]+>(元|美元|人民币)/gi, "$1 $2")
     .replace(/<!--[\s\S]*?-->/g, " ")
     .replace(/<(script|style|noscript)\b[^>]*>[\s\S]*?<\/\1>/gi, " ")
     .replace(/<[^>]+>/g, "\n")
@@ -73,7 +74,10 @@ export function extractPricingEvidence(content) {
     .replace(/&(?:#0*36|#x0*24|dollar);/gi, "$")
     .replace(/&(?:#0*165|#x0*a5|yen);/gi, "¥");
 
-  const lines = visibleText
+  const normalizedVisibleText = visibleText
+    .replace(/(\d+(?:[.,]\d+)?)\s*\n+\s*(元|美元|人民币)/gi, "$1 $2");
+
+  const lines = normalizedVisibleText
     .split(/[\r\n]+/)
     .map((line) => line.replace(/\s+/g, " ").trim())
     .filter((line) => /(?:(?:\$|¥|￥)\s*\d|(?:USD|CNY|RMB)\s*\d|\d+\s*(?:元|美元|人民币))/i.test(line));
