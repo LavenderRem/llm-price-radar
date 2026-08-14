@@ -186,7 +186,10 @@ test("checkPricing uses each provider's existing official pricing URL by default
       reportPath,
     });
 
-    assert.deepEqual(requestedUrls.sort(), providers.map((provider) => provider.officialPricingUrl).sort());
+    assert.deepEqual(
+      requestedUrls.sort(),
+      providers.filter((provider) => provider.pricingCheckMode !== "manual").map((provider) => provider.officialPricingUrl).sort(),
+    );
     assert.deepEqual(result.entries.map((entry) => entry.sourceUrl).sort(), providers.map((provider) => provider.officialPricingUrl).sort());
   });
 });
@@ -318,6 +321,27 @@ test("checkPricing identifies the provider when a source contains no pricing evi
       }),
       /openai: no pricing evidence found in official source/,
     );
+  });
+});
+
+test("checkPricing reports client-rendered pricing sources for manual review without fetching them", async () => {
+  await withTemporaryPaths(async ({ statePath, reportPath }) => {
+    const result = await checkPricing({
+      dryRun: true,
+      fetchImpl: async () => { throw new Error("manual source must not be fetched"); },
+      sourceEntries: [{
+        providerId: "zhipu",
+        providerName: "智谱开放平台",
+        sourceUrl: "https://open.bigmodel.cn/pricing",
+        pricingCheckMode: "manual",
+      }],
+      statePath,
+      reportPath,
+    });
+
+    assert.equal(result.changed, false);
+    assert.equal(result.entries[0].manualReviewRequired, true);
+    assert.match(result.report, /需人工核对/);
   });
 });
 

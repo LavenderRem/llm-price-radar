@@ -18,6 +18,7 @@ function catalogSources() {
   return providers.map((provider) => ({
     providerId: provider.id,
     providerName: provider.name,
+    pricingCheckMode: provider.pricingCheckMode ?? "automated",
     sourceUrl: provider.officialPricingUrl,
   }));
 }
@@ -52,7 +53,9 @@ function renderReport({ entries, fetchedAt }) {
   ];
 
   for (const entry of entries) {
-    const status = entry.baseline
+    const status = entry.manualReviewRequired
+      ? "需人工核对（定价页由客户端渲染）"
+      : entry.baseline
       ? "价格信号基线已建立"
       : entry.priceChanged
         ? "价格信号已变更"
@@ -75,7 +78,11 @@ export async function checkPricing({
   timeoutMs = 15_000,
 } = {}) {
   const priorState = await readState(statePath);
-  const fetched = await Promise.all(sourceEntries.map(async (entry) => {
+  const automatedEntries = sourceEntries.filter((entry) => entry.pricingCheckMode !== "manual");
+  const manualEntries = sourceEntries
+    .filter((entry) => entry.pricingCheckMode === "manual")
+    .map((entry) => ({ ...entry, manualReviewRequired: true, pageChanged: false, priceChanged: false, baseline: false }));
+  const fetched = await Promise.all(automatedEntries.map(async (entry) => {
     const content = await fetchOfficialSource(entry.sourceUrl, fetchImpl, { timeoutMs });
     assertSourceResult({ ...entry, content });
     let priceEvidence;
@@ -91,19 +98,19 @@ export async function checkPricing({
     };
   }));
 
-  const entries = fetched.map((entry) => ({
+  const entries = [...fetched.map((entry) => ({
     ...entry,
     baseline: !priorState.priceSources[entry.sourceUrl],
     pageChanged: priorState.pageSources[entry.sourceUrl] !== entry.pageFingerprint,
     priceChanged: Boolean(priorState.priceSources[entry.sourceUrl])
       && priorState.priceSources[entry.sourceUrl] !== entry.priceFingerprint,
-  }));
+  })), ...manualEntries];
   const changed = entries.some((entry) => entry.baseline || entry.priceChanged);
   const report = renderReport(buildSyncReport(entries, now));
   const nextState = {
     checkedAt: now,
-    pageSources: Object.fromEntries(entries.map((entry) => [entry.sourceUrl, entry.pageFingerprint])),
-    priceSources: Object.fromEntries(entries.map((entry) => [entry.sourceUrl, entry.priceFingerprint])),
+    pageSources: Object.fromEntries(fetched.map((entry) => [entry.sourceUrl, entry.pageFingerprint])),
+    priceSources: Object.fromEntries(fetched.map((entry) => [entry.sourceUrl, entry.priceFingerprint])),
     sourceScope: "providers[].officialPricingUrl",
   };
 
