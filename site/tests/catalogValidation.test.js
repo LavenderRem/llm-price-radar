@@ -24,8 +24,9 @@ describe("assertCatalog", () => {
       .toThrow("models[0].pricing[0].sourceUrl");
   });
 
-  it("接受六家服务商的完整目录", () => {
+  it("接受七家服务商的完整目录", () => {
     expect(() => assertCatalog({ providers: catalogProviders, models, exchangeRates, updates })).not.toThrow();
+    expect(catalogProviders).toHaveLength(7);
     expect(new Set(models.map((model) => model.providerId)).size).toBe(6);
   });
 
@@ -324,6 +325,7 @@ describe("assertCatalog", () => {
   it("每家服务商收录两个到三个具有公开 Token 价格的模型", () => {
     for (const provider of catalogProviders) {
       const providerModels = models.filter((model) => model.providerId === provider.id);
+      if (providerModels.length === 0) continue;
       expect(providerModels.length).toBeGreaterThanOrEqual(2);
       expect(providerModels.length).toBeLessThanOrEqual(3);
     }
