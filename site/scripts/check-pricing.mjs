@@ -78,10 +78,16 @@ export async function checkPricing({
   const fetched = await Promise.all(sourceEntries.map(async (entry) => {
     const content = await fetchOfficialSource(entry.sourceUrl, fetchImpl, { timeoutMs });
     assertSourceResult({ ...entry, content });
+    let priceEvidence;
+    try {
+      priceEvidence = extractPricingEvidence(content);
+    } catch (error) {
+      throw new Error(`${entry.providerId}: ${error.message}`);
+    }
     return {
       ...entry,
       pageFingerprint: fingerprint(content),
-      priceFingerprint: fingerprint(extractPricingEvidence(content)),
+      priceFingerprint: fingerprint(priceEvidence),
     };
   }));
 

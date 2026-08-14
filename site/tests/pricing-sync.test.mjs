@@ -307,6 +307,20 @@ test("checkPricing reports a changed pricing evidence fingerprint", async () => 
   });
 });
 
+test("checkPricing identifies the provider when a source contains no pricing evidence", async () => {
+  await withTemporaryPaths(async ({ statePath, reportPath }) => {
+    await assert.rejects(
+      checkPricing({
+        fetchImpl: async () => ({ ok: true, text: async () => "welcome" }),
+        sourceEntries: [{ providerId: "openai", providerName: "OpenAI", sourceUrl: "https://developers.openai.com/api/docs/pricing" }],
+        statePath,
+        reportPath,
+      }),
+      /openai: no pricing evidence found in official source/,
+    );
+  });
+});
+
 test("daily pricing workflow schedules checks and opens a pull request", async () => {
   const workflowPath = new URL("../../.github/workflows/daily-pricing-update.yml", import.meta.url);
   const workflow = await readFile(workflowPath, "utf8");
