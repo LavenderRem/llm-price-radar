@@ -7,6 +7,7 @@ import test from "node:test";
 import {
   assertSourceResult,
   buildSyncReport,
+  extractPricingEvidence,
   fetchOfficialSource,
   fingerprint,
 } from "../scripts/pricing-sync-core.mjs";
@@ -153,10 +154,14 @@ test("checkPricing persists a changed official source and its report", async () 
     assert.match(result.report, /OpenAI/);
     assert.match(await readFile(reportPath, "utf8"), /OpenAI/);
     assert.deepEqual(JSON.parse(await readFile(statePath, "utf8")), {
-      sourceScope: "providers[].officialPricingUrl",
-      sources: {
-        [openAiSource.sourceUrl]: result.entries[0].fingerprint,
+      checkedAt: "2026-08-07T00:00:00.000Z",
+      pageSources: {
+        [openAiSource.sourceUrl]: result.entries[0].pageFingerprint,
       },
+      priceSources: {
+        [openAiSource.sourceUrl]: result.entries[0].priceFingerprint,
+      },
+      sourceScope: "providers[].officialPricingUrl",
     });
   });
 });
@@ -247,6 +252,52 @@ test("checkPricing dry run detects a change without persisting files", async () 
     assert.equal(result.changed, true);
     await assert.rejects(readFile(statePath, "utf8"), { code: "ENOENT" });
     await assert.rejects(readFile(reportPath, "utf8"), { code: "ENOENT" });
+  });
+});
+
+test("checkPricing ignores dynamic page content when the extracted pricing evidence is unchanged", async () => {
+  await withTemporaryPaths(async ({ statePath, reportPath }) => {
+    const sourceUrl = "https://developers.openai.com/api/docs/pricing";
+    const priorContent = '<main><p>Input $2.00 per 1M tokens</p><script>build=1</script></main>';
+    await writeFile(statePath, `${JSON.stringify({
+      priceSources: { [sourceUrl]: fingerprint(extractPricingEvidence(priorContent)) },
+      checkedAt: "2026-08-12T00:00:00.000Z",
+    })}\n`);
+
+    const result = await checkPricing({
+      fetchImpl: async () => ({ ok: true, text: async () => '<main><p>Input $2.00 per 1M tokens</p><script>build=2</script></main>' }),
+      now: "2026-08-13T00:00:00.000Z",
+      sourceEntries: [{ providerId: "openai", providerName: "OpenAI", sourceUrl }],
+      statePath,
+      reportPath,
+    });
+
+    assert.equal(result.changed, false);
+    assert.equal(result.entries[0].priceChanged, false);
+    assert.equal(result.entries[0].pageChanged, true);
+    await assert.rejects(readFile(reportPath, "utf8"), { code: "ENOENT" });
+  });
+});
+
+test("checkPricing reports a changed pricing evidence fingerprint", async () => {
+  await withTemporaryPaths(async ({ statePath, reportPath }) => {
+    const sourceUrl = "https://developers.openai.com/api/docs/pricing";
+    await writeFile(statePath, `${JSON.stringify({
+      priceSources: { [sourceUrl]: fingerprint(extractPricingEvidence("Input $2.00 per 1M tokens")) },
+      checkedAt: "2026-08-12T00:00:00.000Z",
+    })}\n`);
+
+    const result = await checkPricing({
+      fetchImpl: async () => ({ ok: true, text: async () => "Input $3.00 per 1M tokens" }),
+      now: "2026-08-13T00:00:00.000Z",
+      sourceEntries: [{ providerId: "openai", providerName: "OpenAI", sourceUrl }],
+      statePath,
+      reportPath,
+    });
+
+    assert.equal(result.changed, true);
+    assert.equal(result.entries[0].priceChanged, true);
+    assert.match(await readFile(reportPath, "utf8"), /价格信号已变更/);
   });
 });
 

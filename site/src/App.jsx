@@ -13,6 +13,7 @@ import { UpdatesView } from "./components/UpdatesView.jsx";
 import { models, providers } from "./data/catalog.js";
 import { exchangeRates } from "./data/exchangeRates.js";
 import { updates } from "./data/updates.js";
+import pricingSourceState from "../data/pricing-source-state.json";
 import { sanitizeComparisonIds, toggleComparison } from "./domain/comparison.js";
 import { filterAndSortModels } from "./domain/filters.js";
 import { normalizeModel } from "./domain/pricing.js";
@@ -72,7 +73,7 @@ export function App() {
   const [state, setState] = useUrlState(initialStateRef.current.state, restoreUrlState);
   const normalizedModels = models.map((model) => normalizeModel(model, state.currency, exchangeRates, providers));
   const visibleModels = filterAndSortModels(normalizedModels, state);
-  const verifiedAt = models[0]?.pricing[0]?.verifiedAt ?? "";
+  const priceVerifiedAt = models[0]?.pricing[0]?.verifiedAt ?? "";
   const detailModel = normalizedModels.find((model) => model.id === state.detailId);
 
   const changeFilters = (changes, options) => {
@@ -167,7 +168,8 @@ export function App() {
       <AppHeader
         view={view}
         currency={state.currency}
-        verifiedAt={verifiedAt}
+        priceVerifiedAt={priceVerifiedAt}
+        sourceCheckedAt={pricingSourceState.checkedAt}
         onViewChange={setView}
         onCurrencyChange={(currency) => changeFilters({ currency })}
       />

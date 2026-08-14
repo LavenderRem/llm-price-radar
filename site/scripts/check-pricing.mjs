@@ -6,6 +6,7 @@ import { providers } from "../src/data/catalog.js";
 import {
   assertSourceResult,
   buildSyncReport,
+  extractPricingEvidence,
   fetchOfficialSource,
   fingerprint,
 } from "./pricing-sync-core.mjs";
@@ -24,12 +25,16 @@ function catalogSources() {
 async function readState(statePath) {
   try {
     const parsed = JSON.parse(await readFile(statePath, "utf8"));
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed) || !parsed.sources || typeof parsed.sources !== "object" || Array.isArray(parsed.sources)) {
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
       throw new Error("invalid pricing source state");
     }
-    return parsed;
+    return {
+      checkedAt: parsed.checkedAt ?? "",
+      pageSources: parsed.pageSources ?? parsed.sources ?? {},
+      priceSources: parsed.priceSources ?? {},
+    };
   } catch (error) {
-    if (error.code === "ENOENT") return { sources: {} };
+    if (error.code === "ENOENT") return { checkedAt: "", pageSources: {}, priceSources: {} };
     throw error;
   }
 }
@@ -42,12 +47,19 @@ function renderReport({ entries, fetchedAt }) {
     "",
     `检查时间：${fetchedAt}`,
     "",
-    "| 服务商 | 官方定价页 | 内容指纹 | 状态 |",
+    "| 服务商 | 官方定价页 | 价格信号指纹 | 结果 |",
     "| --- | --- | --- | --- |",
   ];
 
   for (const entry of entries) {
-    lines.push(`| ${entry.providerName} | ${entry.sourceUrl} | ${entry.fingerprint} | ${entry.changed ? "已变化" : "未变化"} |`);
+    const status = entry.baseline
+      ? "价格信号基线已建立"
+      : entry.priceChanged
+        ? "价格信号已变更"
+        : entry.pageChanged
+          ? "页面内容已变更，价格信号未变"
+          : "未变化";
+    lines.push(`| ${entry.providerName} | ${entry.sourceUrl} | ${entry.priceFingerprint} | ${status} |`);
   }
 
   return `${lines.join("\n")}\n`;
@@ -66,18 +78,27 @@ export async function checkPricing({
   const fetched = await Promise.all(sourceEntries.map(async (entry) => {
     const content = await fetchOfficialSource(entry.sourceUrl, fetchImpl, { timeoutMs });
     assertSourceResult({ ...entry, content });
-    return { ...entry, fingerprint: fingerprint(content) };
+    return {
+      ...entry,
+      pageFingerprint: fingerprint(content),
+      priceFingerprint: fingerprint(extractPricingEvidence(content)),
+    };
   }));
 
   const entries = fetched.map((entry) => ({
     ...entry,
-    changed: priorState.sources[entry.sourceUrl] !== entry.fingerprint,
+    baseline: !priorState.priceSources[entry.sourceUrl],
+    pageChanged: priorState.pageSources[entry.sourceUrl] !== entry.pageFingerprint,
+    priceChanged: Boolean(priorState.priceSources[entry.sourceUrl])
+      && priorState.priceSources[entry.sourceUrl] !== entry.priceFingerprint,
   }));
-  const changed = entries.some((entry) => entry.changed);
+  const changed = entries.some((entry) => entry.baseline || entry.priceChanged);
   const report = renderReport(buildSyncReport(entries, now));
   const nextState = {
+    checkedAt: now,
+    pageSources: Object.fromEntries(entries.map((entry) => [entry.sourceUrl, entry.pageFingerprint])),
+    priceSources: Object.fromEntries(entries.map((entry) => [entry.sourceUrl, entry.priceFingerprint])),
     sourceScope: "providers[].officialPricingUrl",
-    sources: Object.fromEntries(entries.map((entry) => [entry.sourceUrl, entry.fingerprint])),
   };
 
   if (changed && !dryRun) {
@@ -92,7 +113,7 @@ export async function checkPricing({
 async function runCli() {
   const result = await checkPricing({ dryRun: process.argv.includes("--dry-run") });
   process.stdout.write(result.report);
-  process.stdout.write(`价格来源${result.changed ? "已变化" : "未变化"}${process.argv.includes("--dry-run") ? "（试运行）" : ""}\n`);
+  process.stdout.write(`价格信号${result.changed ? "已变更或已建立基线" : "未变更"}${process.argv.includes("--dry-run") ? "（试运行）" : ""}\n`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {

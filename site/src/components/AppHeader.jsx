@@ -9,7 +9,7 @@ const views = [
   { id: "methodology", label: "计价说明" },
 ];
 
-export function AppHeader({ view, currency, verifiedAt, onViewChange, onCurrencyChange }) {
+export function AppHeader({ view, currency, priceVerifiedAt, sourceCheckedAt, onViewChange, onCurrencyChange }) {
   return (
     <header className="app-header">
       <div className="brand-lockup">
@@ -32,9 +32,13 @@ export function AppHeader({ view, currency, verifiedAt, onViewChange, onCurrency
       </nav>
 
       <div className="header-tools">
-        <p className="verified-at">
+        <p className="verified-at" title="人工核验并写入价格目录的日期">
           <Clock size={16} aria-hidden="true" />
-          <span>数据更新于 {verifiedAt}</span>
+          <span>价格数据核验于 {priceVerifiedAt}</span>
+        </p>
+        <p className="verified-at source-checked-at" title="最近一次已合并的官方来源检查时间">
+          <Clock size={16} aria-hidden="true" />
+          <span>官方来源检查于 {sourceCheckedAt ? sourceCheckedAt.slice(0, 10) : "未检查"}</span>
         </p>
         <div className="currency-switch" role="group" aria-label="计价货币">
           {["CNY", "USD"].map((item) => (

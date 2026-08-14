@@ -12,6 +12,13 @@ describe("App", () => {
       .toContain("model-price-mark");
   });
 
+  it("分别展示价格数据核验时间与官方来源检查时间", () => {
+    render(<App />);
+
+    expect(screen.getByText(/价格数据核验于 2026-08-06/)).toBeInTheDocument();
+    expect(screen.getByText(/官方来源检查于 2026-08-13/)).toBeInTheDocument();
+  });
+
   it("通过键盘切换三个导航视图的活动态", async () => {
     const user = userEvent.setup();
     render(<App />);

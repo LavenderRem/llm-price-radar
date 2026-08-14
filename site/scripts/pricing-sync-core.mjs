@@ -49,6 +49,28 @@ export async function fetchOfficialSource(sourceUrl, fetchImpl = fetch, { timeou
 
 export const fingerprint = (content) => createHash("sha256").update(content).digest("hex");
 
+export function extractPricingEvidence(content) {
+  const visibleText = content
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<(script|style|noscript)\b[^>]*>[\s\S]*?<\/\1>/gi, " ")
+    .replace(/<[^>]+>/g, "\n")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&(?:#0*36|#x0*24|dollar);/gi, "$")
+    .replace(/&(?:#0*165|#x0*a5|yen);/gi, "¥");
+
+  const lines = visibleText
+    .split(/[\r\n]+/)
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .filter((line) => /(?:\$|¥|￥|USD|CNY|RMB|元|美元|人民币|pricing|price|价格|token|MTok|百万|million)/i.test(line));
+
+  if (lines.length === 0) {
+    throw new Error("no pricing evidence found in official source");
+  }
+
+  return lines.join("\n");
+}
+
 export function assertSourceResult({ providerId, sourceUrl, content }) {
   let url;
 
