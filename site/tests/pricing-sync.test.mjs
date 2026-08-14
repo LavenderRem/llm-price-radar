@@ -22,6 +22,13 @@ test("fingerprint changes when source content changes", () => {
   assert.notEqual(fingerprint("价格 2.00"), fingerprint("价格 3.00"));
 });
 
+test("pricing evidence ignores marketing-only pricing copy", () => {
+  assert.throws(
+    () => extractPricingEvidence("<p>Pricing for professional teams</p>"),
+    /no pricing evidence found/,
+  );
+});
+
 test("coding plan catalog fingerprint ignores copy but changes for price facts", () => {
   const current = {
     id: "cursor-pro",
@@ -185,7 +192,7 @@ async function withTemporaryPaths(run) {
 test("checkPricing persists a changed official source and its report", async () => {
   await withTemporaryPaths(async ({ statePath, reportPath }) => {
     const result = await checkPricing({
-      fetchImpl: async () => ({ ok: true, text: async () => "current official price" }),
+      fetchImpl: async () => ({ ok: true, text: async () => "current official price $20" }),
       now: "2026-08-07T00:00:00.000Z",
       sourceEntries: [openAiSource],
       codingPlanEntries: [],
@@ -218,7 +225,7 @@ test("checkPricing excludes coding-plans-only providers from default model API s
       dryRun: true,
       fetchImpl: async (sourceUrl) => {
         requestedUrls.push(sourceUrl);
-        return { ok: true, text: async () => "current official price" };
+        return { ok: true, text: async () => "current official price $20" };
       },
       now: "2026-08-07T00:00:00.000Z",
       codingPlanEntries: [],
@@ -229,7 +236,7 @@ test("checkPricing excludes coding-plans-only providers from default model API s
     const codingPlansOnlyProviders = providers.filter((provider) => provider.catalogScope === "coding-plans-only");
     const defaultProviders = providers.filter((provider) => provider.catalogScope !== "coding-plans-only");
 
-    assert.deepEqual(codingPlansOnlyProviders.map((provider) => provider.id).sort(), ["codebuddy", "trae"]);
+    assert.deepEqual(codingPlansOnlyProviders.map((provider) => provider.id).sort(), ["codebuddy", "cursor", "trae"]);
     assert.deepEqual(
       requestedUrls.sort(),
       defaultProviders.filter((provider) => provider.pricingCheckMode !== "manual").map((provider) => provider.officialPricingUrl).sort(),
@@ -284,6 +291,27 @@ test("coding plan sources fetch each shared official URL once", async () => {
 
     assert.deepEqual(requestedUrls, [cursorPlanSource.sourceUrl]);
     assert.equal(result.codingPlanEntries.length, 2);
+  });
+});
+
+test("a shared coding plan source reports one source candidate instead of every tier", async () => {
+  await withTemporaryPaths(async ({ statePath, reportPath }) => {
+    await writeFile(statePath, `${JSON.stringify({
+      codingPlanPageSources: { [cursorPlanSource.sourceUrl]: fingerprint("Cursor Pro $20/month") },
+      codingPlanPriceSources: { [cursorPlanSource.sourceUrl]: fingerprint(extractPricingEvidence("Cursor Pro $20/month")) },
+    })}\n`);
+
+    const result = await checkPricing({
+      dryRun: true,
+      codingPlanEntries: [cursorPlanSource, { ...cursorPlanSource, id: "cursor-free", planName: "Free" }],
+      fetchImpl: async () => ({ ok: true, text: async () => "Cursor Pro $25/month" }),
+      sourceEntries: [],
+      statePath,
+      reportPath,
+    });
+
+    assert.equal(result.codingPlanEntries.filter((entry) => entry.candidateChange).length, 1);
+    assert.match(result.report, /Cursor \/ Pro、Free/);
   });
 });
 
@@ -407,7 +435,7 @@ test("checkPricing dry run detects a change without persisting files", async () 
   await withTemporaryPaths(async ({ statePath, reportPath }) => {
     const result = await checkPricing({
       dryRun: true,
-      fetchImpl: async () => ({ ok: true, text: async () => "current official price" }),
+      fetchImpl: async () => ({ ok: true, text: async () => "current official price $20" }),
       now: "2026-08-07T00:00:00.000Z",
       sourceEntries: [openAiSource],
       codingPlanEntries: [],

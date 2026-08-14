@@ -32,6 +32,13 @@ function displayablePriceAmount(price, path) {
   if (!Number.isFinite(price.amount) || price.amount < 0) throw new Error(`${path}.amount`);
 }
 
+function validatePrice(price, path, period) {
+  if (!price || typeof price !== "object") throw new Error(path);
+  required(price.currency, `${path}.currency`);
+  if (price.period !== period) throw new Error(`${path}.period`);
+  displayablePriceAmount(price, path);
+}
+
 function officialPlanHosts(provider, index) {
   const pricingHost = httpsUrl(
     provider.officialPricingUrl,
@@ -76,10 +83,8 @@ export function validateCodingPlans(plans, providers) {
     required(plan.productName, `${base}.productName`);
     required(plan.planName, `${base}.planName`);
     if (plan.planType !== "individual-coding") throw new Error(`${base}.planType`);
-    if (!plan.price || typeof plan.price !== "object") throw new Error(`${base}.price`);
-    required(plan.price.currency, `${base}.price.currency`);
-    if (plan.price.period !== "month") throw new Error(`${base}.price.period`);
-    displayablePriceAmount(plan.price, `${base}.price`);
+    validatePrice(plan.price, `${base}.price`, "month");
+    if (plan.annualPrice !== undefined) validatePrice(plan.annualPrice, `${base}.annualPrice`, "year");
     required(plan.includedUsage, `${base}.includedUsage`);
     if (!plan.allowancePolicy || typeof plan.allowancePolicy !== "object") {
       throw new Error(`${base}.allowancePolicy`);
@@ -112,8 +117,14 @@ function convertCurrency(amount, fromCurrency, toCurrency, exchangeRates) {
     (rate.base ?? rate.baseCurrency) === fromCurrency
       && (rate.quote ?? rate.quoteCurrency) === toCurrency
   ));
-  if (!exchangeRate) return null;
-  return amount * exchangeRate.rate;
+  if (exchangeRate) return Number(new Decimal(amount).mul(exchangeRate.rate));
+
+  const inverseRate = exchangeRates.find((rate) => (
+    (rate.base ?? rate.baseCurrency) === toCurrency
+      && (rate.quote ?? rate.quoteCurrency) === fromCurrency
+  ));
+  if (!inverseRate) return null;
+  return Number(new Decimal(amount).div(inverseRate.rate));
 }
 
 export function normalizeCodingPlan(plan, currency, exchangeRates) {
@@ -122,11 +133,17 @@ export function normalizeCodingPlan(plan, currency, exchangeRates) {
     : currency === plan.price.currency
       ? plan.price.amount
       : convertCurrency(plan.price.amount, plan.price.currency, currency, exchangeRates);
+  const displayAnnualPrice = plan.annualPrice?.amount === null || plan.annualPrice === undefined
+    ? null
+    : currency === plan.annualPrice.currency
+      ? plan.annualPrice.amount
+      : convertCurrency(plan.annualPrice.amount, plan.annualPrice.currency, currency, exchangeRates);
   return {
     ...plan,
     displayPrice,
     displayCurrency: currency,
     displayPriceLabel: displayPrice === null ? "未公开" : undefined,
+    displayAnnualPrice,
     allowanceLabel: plan.allowancePolicy.status === "unpublished"
       ? "未公开"
       : plan.allowancePolicy.label,
@@ -181,3 +198,4 @@ export function sanitizeCodingPlanComparisonIds(ids, plans) {
     normalizedChanged: invalidCount + overflowCount + duplicatesRemoved > 0,
   };
 }
+import Decimal from "decimal.js";

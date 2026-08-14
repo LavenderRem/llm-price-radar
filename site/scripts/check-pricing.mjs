@@ -44,6 +44,7 @@ export function codingPlanSources() {
     return {
       ...plan,
       providerName: provider.name,
+      officialHosts: new Set([new URL(provider.officialPricingUrl).hostname, ...(provider.officialDomains ?? [])]),
       pricingCheckMode: checkPolicy?.pricingCheckMode ?? "automated",
       manualReviewReason: checkPolicy?.manualReviewReason,
     };
@@ -116,8 +117,9 @@ function renderReport({ entries, codingPlanEntries, fetchedAt }) {
     "| --- | --- | --- | --- | --- |",
   );
 
-  for (const entry of codingPlanEntries) {
-    lines.push(`| ${entry.productName} / ${entry.planName} | ${entry.sourceUrl} | ${entry.factsFingerprint} | ${entry.priceFingerprint ?? "—"} | ${entryStatus(entry, { candidate: true })} |`);
+  for (const entry of codingPlanEntries.filter((item) => item.sourceRepresentative !== false)) {
+    const planNames = entry.sourcePlanNames?.join("、") ?? entry.planName;
+    lines.push(`| ${entry.productName} / ${planNames} | ${entry.sourceUrl} | ${entry.factsFingerprint} | ${entry.priceFingerprint ?? "—"} | ${entryStatus(entry, { candidate: true })} |`);
   }
 
   return `${lines.join("\n")}\n`;
@@ -203,18 +205,27 @@ export async function checkPricing({
       legacyPriceBaseline: hasLegacyPriceSource,
     };
   }), ...manualEntries];
+  const seenCodingPlanSources = new Set();
   const checkedCodingPlanEntries = automatedCodingPlanEntries.map((entry) => {
     const fingerprints = codingPlanFingerprintsByUrl.get(entry.sourceUrl);
+    const sourceRepresentative = !seenCodingPlanSources.has(entry.sourceUrl);
+    seenCodingPlanSources.add(entry.sourceUrl);
+    const sourcePlanNames = automatedCodingPlanEntries
+      .filter((plan) => plan.sourceUrl === entry.sourceUrl)
+      .map((plan) => plan.planName);
+    const priceChanged = sourceRepresentative
+      && Boolean(priorState.codingPlanPriceSources[entry.sourceUrl])
+      && priorState.codingPlanPriceSources[entry.sourceUrl] !== fingerprints.priceFingerprint;
     return {
       ...entry,
       ...fingerprints,
       factsFingerprint: fingerprintCodingPlanFacts(entry),
-      baseline: !priorState.codingPlanPriceSources[entry.sourceUrl],
+      sourceRepresentative,
+      sourcePlanNames,
+      baseline: sourceRepresentative && !priorState.codingPlanPriceSources[entry.sourceUrl],
       pageChanged: priorState.codingPlanPageSources[entry.sourceUrl] !== fingerprints.pageFingerprint,
-      priceChanged: Boolean(priorState.codingPlanPriceSources[entry.sourceUrl])
-        && priorState.codingPlanPriceSources[entry.sourceUrl] !== fingerprints.priceFingerprint,
-      candidateChange: Boolean(priorState.codingPlanPriceSources[entry.sourceUrl])
-        && priorState.codingPlanPriceSources[entry.sourceUrl] !== fingerprints.priceFingerprint,
+      priceChanged,
+      candidateChange: priceChanged,
     };
   });
   const checkedCodingPlanEntriesWithManual = [...checkedCodingPlanEntries, ...manualCodingPlanEntries];

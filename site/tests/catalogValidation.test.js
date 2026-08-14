@@ -34,6 +34,14 @@ describe("assertCatalog", () => {
     expect(new Set(models.map((model) => model.providerId)).size).toBe(6);
   });
 
+  it("拒绝非编程套餐专属服务商缺少模型", () => {
+    expect(() => assertCatalog({
+      providers: catalogProviders,
+      models: models.filter((model) => model.providerId !== "openai"),
+      exchangeRates,
+    })).toThrow("models.providerId.openai");
+  });
+
   it("锁定 OpenAI 官方价格字面量", () => {
     const terra = models.find((model) => model.id === "openai-gpt-5-6-terra").pricing[0];
     const luna = models.find((model) => model.id === "openai-gpt-5-6-luna").pricing[0];

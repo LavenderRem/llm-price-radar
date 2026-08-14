@@ -97,6 +97,30 @@ describe("coding plan domain logic", () => {
       });
   });
 
+  it("uses the inverse exchange rate for CNY plans shown in USD", () => {
+    const cnyPlan = { ...validPlan, price: { amount: 99, currency: "CNY", period: "month" } };
+
+    expect(normalizeCodingPlan(cnyPlan, "USD", [{ base: "USD", quote: "CNY", rate: 6.6 }]))
+      .toMatchObject({ displayPrice: 15, displayCurrency: "USD", displayPriceLabel: undefined });
+  });
+
+  it("records every current TRAE tier with its official monthly price and basic usage", () => {
+    const trae = Object.fromEntries(codingPlans
+      .filter((plan) => plan.providerId === "trae")
+      .map((plan) => [plan.planName, plan]));
+
+    expect(trae.Free).toMatchObject({ price: { amount: 0, currency: "USD" }, allowancePolicy: { label: "Limited usage" } });
+    expect(trae.Lite).toMatchObject({ price: { amount: 3, currency: "USD" }, allowancePolicy: { label: "USD 5 Basic usage" } });
+    expect(trae.Pro).toMatchObject({ price: { amount: 10, currency: "USD" }, allowancePolicy: { label: "USD 20 Basic usage" } });
+    expect(trae["Pro+"]).toMatchObject({ price: { amount: 30, currency: "USD" }, allowancePolicy: { label: "USD 90 Basic usage" } });
+    expect(trae.Ultra).toMatchObject({ price: { amount: 100, currency: "USD" }, allowancePolicy: { label: "USD 400 Basic usage" } });
+  });
+
+  it("keeps Claude Pro annual billing as a structured official price", () => {
+    const plan = codingPlans.find((item) => item.id === "claude-code-pro");
+    expect(plan).toMatchObject({ annualPrice: { amount: 200, currency: "USD", period: "year" } });
+  });
+
   it("filters by coding surface and free plans before sorting by price", () => {
     const plans = [
       { ...validPlan, id: "paid-cli", productName: "Zeta", codingSurfaces: ["CLI"], price: { ...validPlan.price, amount: 10 } },

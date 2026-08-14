@@ -24,6 +24,16 @@ describe("CodingPlansView", () => {
     await user.click(screen.getByRole("button", { name: "编程套餐" }));
 
     expect(screen.getByRole("button", { name: "USD" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText("$14.58")).toBeInTheDocument();
+  });
+
+  it("shows Claude Pro monthly and annual billing choices", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "编程套餐" }));
+
+    expect(screen.getByText("月付或年付（USD 200/年）")).toBeInTheDocument();
   });
 
   it("keeps no more than three selected plans in the plan comparison tray", async () => {

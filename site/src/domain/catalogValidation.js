@@ -116,7 +116,8 @@ export function assertCatalog({ providers, models, exchangeRates, updates }) {
   }
   for (const providerId of PROVIDER_IDS) {
     const count = modelCountByProvider.get(providerId);
-    if (count === 0) continue;
+    if (count === 0 && providerById.get(providerId).catalogScope === "coding-plans-only") continue;
+    if (count === 0) throw new Error(`models.providerId.${providerId}`);
     if (count < 2 || count > 3) throw new Error(`models.providerId.${providerId}`);
   }
 

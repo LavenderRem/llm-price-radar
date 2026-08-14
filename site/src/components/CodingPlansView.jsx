@@ -18,6 +18,11 @@ function displayPrice(plan) {
   return `${symbol}${plan.displayPrice.toFixed(plan.displayPrice < 0.1 ? 3 : 2)}`;
 }
 
+function billingLabel(plan) {
+  if (!Number.isFinite(plan.displayAnnualPrice)) return "月付";
+  return `月付或年付（${plan.displayCurrency} ${plan.displayAnnualPrice.toFixed(0)}/年）`;
+}
+
 function PlanIdentity({ plan }) {
   return (
     <span className="plan-identity">
@@ -124,7 +129,7 @@ export function CodingPlansView({ plans, currency, exchangeRates, selectedIds, o
                     </td>
                     <td><PlanIdentity plan={plan} /></td>
                     <td className="plans-price"><strong>{displayPrice(plan)}</strong><small>{plan.displayCurrency}</small></td>
-                    <td>{plan.price.period === "month" ? "月付" : "未公开"}</td>
+                    <td>{billingLabel(plan)}</td>
                     <td>{plan.includedUsage}</td>
                     <td>{plan.allowanceLabel}</td>
                     <td><span className="plans-surface-tags">{plan.codingSurfaces.map((surface) => <span key={surface}>{surface}</span>)}</span></td>
