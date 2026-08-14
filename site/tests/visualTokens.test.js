@@ -25,4 +25,13 @@ describe("关键视觉 Token", () => {
       /\.comparison-selection-list \.provider-logo\s*\{[^}]*width:\s*24px;[^}]*height:\s*24px;/,
     );
   });
+
+  it("在窄屏让全部导航按钮等宽收缩而不保留桌面最小宽度", () => {
+    expect(styles).toMatch(
+      /@media \(max-width: 767px\) \{[\s\S]*?\.primary-nav\s*\{[^}]*gap:\s*0;[\s\S]*?\.nav-button\s*\{[^}]*min-width:\s*0;[^}]*flex:\s*1 1 0;/,
+    );
+    expect(styles).toMatch(
+      /@media \(max-width: 767px\) \{[\s\S]*?\.nav-button:last-child\s*\{[^}]*position:\s*static;[^}]*opacity:\s*1;[^}]*pointer-events:\s*auto;/,
+    );
+  });
 });

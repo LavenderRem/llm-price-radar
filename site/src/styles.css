@@ -1793,9 +1793,16 @@ a:focus-visible {
 }
 
 .plans-comparison-heading span,
-.plans-comparison-empty {
+.plans-comparison-empty,
+.plans-comparison-limit {
   color: var(--muted);
   font-size: 12px;
+}
+
+.plans-comparison-limit {
+  margin: var(--space-2) 0 0;
+  color: var(--primary);
+  font-weight: 700;
 }
 
 .plans-comparison-empty {
@@ -2060,10 +2067,25 @@ a:focus-visible {
     order: 3;
     width: 100%;
     height: 48px;
+    gap: 0;
   }
 
   .nav-button {
-    flex: 1;
+    min-width: 0;
+    flex: 1 1 0;
+    padding-inline: var(--space-1);
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .nav-button:last-child {
+    position: static;
+    width: auto;
+    height: auto;
+    padding-inline: var(--space-1);
+    overflow: visible;
+    opacity: 1;
+    pointer-events: auto;
   }
 
   .catalog-layout {

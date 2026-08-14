@@ -38,6 +38,17 @@ describe("CodingPlansView", () => {
 
     expect(screen.getByText("对比清单 · 3/3")).toBeInTheDocument();
     expect(screen.getByRole("checkbox", { name: "选择 Cursor Ultra" })).not.toBeChecked();
+    expect(screen.getByRole("status")).toHaveTextContent("最多选择 3 项套餐");
+  });
+
+  it("names the selected plan in its comparison tray removal control", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "编程套餐" }));
+    await user.click(screen.getByRole("checkbox", { name: "选择 Cursor Free" }));
+
+    expect(screen.getByRole("button", { name: "移除 Cursor Free" })).toBeInTheDocument();
   });
 
   it("keeps plan selections separate from model comparison selections", async () => {

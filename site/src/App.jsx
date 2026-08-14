@@ -58,6 +58,7 @@ export function App() {
   const [comparisonOpen, setComparisonOpen] = useState(false);
   const [comparisonLimitReached, setComparisonLimitReached] = useState(false);
   const [selectedPlanIds, setSelectedPlanIds] = useState([]);
+  const [codingPlanComparisonLimitReached, setCodingPlanComparisonLimitReached] = useState(false);
   const comparisonTriggerRef = useRef(null);
   const comparisonCtaRef = useRef(null);
   const detailTriggerRef = useRef(null);
@@ -93,7 +94,11 @@ export function App() {
   };
 
   const togglePlanCompare = (planId) => {
-    setSelectedPlanIds((current) => toggleCodingPlanComparison(current, planId).ids);
+    setSelectedPlanIds((current) => {
+      const result = toggleCodingPlanComparison(current, planId);
+      setCodingPlanComparisonLimitReached(result.limitReached);
+      return result.ids;
+    });
   };
 
   const removeFromComparison = (modelId) => {
@@ -242,6 +247,7 @@ export function App() {
           exchangeRates={exchangeRates}
           selectedIds={selectedPlanIds}
           onTogglePlan={togglePlanCompare}
+          comparisonLimitReached={codingPlanComparisonLimitReached}
         />
       ) : view === "calculator" ? (
         <CostEstimator

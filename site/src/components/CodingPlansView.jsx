@@ -27,7 +27,7 @@ function PlanIdentity({ plan }) {
   );
 }
 
-function PlanSelectionTray({ plans, selectedIds, onToggle }) {
+function PlanSelectionTray({ plans, selectedIds, onToggle, comparisonLimitReached }) {
   const selectedPlans = selectedIds
     .map((id) => plans.find((plan) => plan.id === id))
     .filter(Boolean);
@@ -38,6 +38,7 @@ function PlanSelectionTray({ plans, selectedIds, onToggle }) {
         <strong>对比清单 · {selectedPlans.length}/3</strong>
         <span>最多选择 3 项</span>
       </div>
+      {comparisonLimitReached ? <p className="plans-comparison-limit" role="status">最多选择 3 项套餐</p> : null}
       {selectedPlans.length === 0 ? (
         <p className="plans-comparison-empty">选择套餐后，在这里查看关键事实。</p>
       ) : (
@@ -53,7 +54,7 @@ function PlanSelectionTray({ plans, selectedIds, onToggle }) {
                 <div><dt>额度与超额</dt><dd>{plan.allowanceLabel}</dd></div>
                 <div><dt>编程入口</dt><dd>{plan.codingSurfaces.join(" / ")}</dd></div>
               </dl>
-              <button type="button" onClick={() => onToggle(plan.id)}>移除</button>
+              <button type="button" aria-label={`移除 ${plan.productName} ${plan.planName}`} onClick={() => onToggle(plan.id)}>移除</button>
             </li>
           ))}
         </ul>
@@ -62,7 +63,7 @@ function PlanSelectionTray({ plans, selectedIds, onToggle }) {
   );
 }
 
-export function CodingPlansView({ plans, currency, exchangeRates, selectedIds, onTogglePlan }) {
+export function CodingPlansView({ plans, currency, exchangeRates, selectedIds, onTogglePlan, comparisonLimitReached }) {
   const [filterId, setFilterId] = useState("all");
   const activeFilter = filters.find((filter) => filter.id === filterId) ?? filters[0];
   const normalizedPlans = useMemo(
@@ -140,7 +141,12 @@ export function CodingPlansView({ plans, currency, exchangeRates, selectedIds, o
           </table>
         </div>
       </section>
-      <PlanSelectionTray plans={normalizedPlans} selectedIds={selectedIds} onToggle={onTogglePlan} />
+      <PlanSelectionTray
+        plans={normalizedPlans}
+        selectedIds={selectedIds}
+        onToggle={onTogglePlan}
+        comparisonLimitReached={comparisonLimitReached}
+      />
     </main>
   );
 }
