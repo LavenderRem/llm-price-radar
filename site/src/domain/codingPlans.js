@@ -32,13 +32,39 @@ function displayablePriceAmount(price, path) {
   if (!Number.isFinite(price.amount) || price.amount < 0) throw new Error(`${path}.amount`);
 }
 
+function officialPlanHosts(provider, index) {
+  const pricingHost = httpsUrl(
+    provider.officialPricingUrl,
+    `providers[${index}].officialPricingUrl`,
+  ).hostname;
+  if (provider.officialDomains === undefined) return new Set([pricingHost]);
+  if (!Array.isArray(provider.officialDomains) || provider.officialDomains.length === 0) {
+    throw new Error(`providers[${index}].officialDomains`);
+  }
+
+  const hosts = new Set();
+  for (const [domainIndex, domain] of provider.officialDomains.entries()) {
+    if (typeof domain !== "string") throw new Error(`providers[${index}].officialDomains[${domainIndex}]`);
+    try {
+      const url = new URL(`https://${domain}`);
+      if (url.hostname !== domain || url.pathname !== "/" || url.search || url.hash) {
+        throw new Error();
+      }
+      hosts.add(url.hostname);
+    } catch {
+      throw new Error(`providers[${index}].officialDomains[${domainIndex}]`);
+    }
+  }
+  return hosts;
+}
+
 export function validateCodingPlans(plans, providers) {
   if (!Array.isArray(plans) || plans.length === 0) throw new Error("codingPlans");
   if (!Array.isArray(providers)) throw new Error("providers");
 
-  const providerHostById = new Map(providers.map((provider, index) => [
+  const providerHostsById = new Map(providers.map((provider, index) => [
     provider.id,
-    httpsUrl(provider.officialPricingUrl, `providers[${index}].officialPricingUrl`).hostname,
+    officialPlanHosts(provider, index),
   ]));
   const planIds = new Set();
   for (const [index, plan] of plans.entries()) {
@@ -46,7 +72,7 @@ export function validateCodingPlans(plans, providers) {
     required(plan.id, `${base}.id`);
     if (planIds.has(plan.id)) throw new Error(`${base}.id`);
     planIds.add(plan.id);
-    if (!providerHostById.has(plan.providerId)) throw new Error(`${base}.providerId`);
+    if (!providerHostsById.has(plan.providerId)) throw new Error(`${base}.providerId`);
     required(plan.productName, `${base}.productName`);
     required(plan.planName, `${base}.planName`);
     if (plan.planType !== "individual-coding") throw new Error(`${base}.planType`);
@@ -69,13 +95,13 @@ export function validateCodingPlans(plans, providers) {
       throw new Error(`${base}.codingSurfaces`);
     }
     const officialUrl = httpsUrl(plan.officialUrl, `${base}.officialUrl`);
-    if (officialUrl.hostname !== providerHostById.get(plan.providerId)) {
+    if (!providerHostsById.get(plan.providerId).has(officialUrl.hostname)) {
       throw new Error(`${base}.officialUrl`);
     }
     validDate(plan.verifiedAt, `${base}.verifiedAt`);
     required(plan.officialSummary, `${base}.officialSummary`);
     const sourceUrl = httpsUrl(plan.sourceUrl, `${base}.sourceUrl`);
-    if (sourceUrl.hostname !== providerHostById.get(plan.providerId)) {
+    if (!providerHostsById.get(plan.providerId).has(sourceUrl.hostname)) {
       throw new Error(`${base}.sourceUrl`);
     }
   }

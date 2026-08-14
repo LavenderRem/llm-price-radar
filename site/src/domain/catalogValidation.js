@@ -30,7 +30,7 @@ function httpsUrl(value, path) {
   }
 }
 
-const PROVIDER_IDS = ["openai", "anthropic", "google", "deepseek", "aliyun", "zhipu", "cursor"];
+const PROVIDER_IDS = ["openai", "anthropic", "google", "deepseek", "aliyun", "zhipu", "cursor", "trae", "codebuddy"];
 const UPDATE_TYPES = new Set([
   "price-increased",
   "price-decreased",

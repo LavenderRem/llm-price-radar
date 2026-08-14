@@ -24,9 +24,13 @@ describe("assertCatalog", () => {
       .toThrow("models[0].pricing[0].sourceUrl");
   });
 
-  it("接受七家服务商的完整目录", () => {
+  it("接受包含仅提供编程套餐服务商的完整目录", () => {
     expect(() => assertCatalog({ providers: catalogProviders, models, exchangeRates, updates })).not.toThrow();
-    expect(catalogProviders).toHaveLength(7);
+    expect(catalogProviders).toHaveLength(9);
+    expect(catalogProviders.map((provider) => provider.id)).toEqual(expect.arrayContaining([
+      "trae",
+      "codebuddy",
+    ]));
     expect(new Set(models.map((model) => model.providerId)).size).toBe(6);
   });
 

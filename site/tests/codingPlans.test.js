@@ -32,6 +32,33 @@ describe("coding plans catalog", () => {
       .toEqual(expect.arrayContaining(["Free", "Pro"]));
   });
 
+  it("includes verified personal coding plans from multiple providers without deprecated consumer products", () => {
+    expect([...new Set(codingPlans.map((plan) => plan.providerId))]).toEqual(expect.arrayContaining([
+      "cursor", "anthropic", "trae", "codebuddy",
+    ]));
+    expect(codingPlans.some((plan) => plan.productName === "Gemini Code Assist")).toBe(false);
+    expect(codingPlans.some((plan) => plan.productName === "Codex")).toBe(false);
+  });
+
+  it("allows only explicitly declared official provider hostnames for coding plan sources", () => {
+    const claudePlan = {
+      ...validPlan,
+      providerId: "anthropic",
+      officialUrl: "https://support.claude.com/en/articles/11049762-choose-a-claude-plan",
+      sourceUrl: "https://support.claude.com/en/articles/11049762-choose-a-claude-plan",
+    };
+
+    expect(() => validateCodingPlans([claudePlan], providers)).not.toThrow();
+    expect(() => validateCodingPlans([{
+      ...claudePlan,
+      sourceUrl: "https://sub.support.claude.com/pricing",
+    }], providers)).toThrow("codingPlans[0].sourceUrl");
+    expect(() => validateCodingPlans([{
+      ...claudePlan,
+      sourceUrl: "https://example.com/pricing",
+    }], providers)).toThrow("codingPlans[0].sourceUrl");
+  });
+
   it("uses official HTTPS sources and explicit plan types for every tier", () => {
     expect(() => validateCodingPlans(codingPlans, providers)).not.toThrow();
     for (const plan of codingPlans) {
