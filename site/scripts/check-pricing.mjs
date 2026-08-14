@@ -15,12 +15,14 @@ const defaultStatePath = fileURLToPath(new URL("../data/pricing-source-state.jso
 const defaultReportPath = fileURLToPath(new URL("../data/pricing-sync-report.md", import.meta.url));
 
 function catalogSources() {
-  return providers.map((provider) => ({
-    providerId: provider.id,
-    providerName: provider.name,
-    pricingCheckMode: provider.pricingCheckMode ?? "automated",
-    sourceUrl: provider.officialPricingUrl,
-  }));
+  return providers
+    .filter((provider) => provider.catalogScope !== "coding-plans-only")
+    .map((provider) => ({
+      providerId: provider.id,
+      providerName: provider.name,
+      pricingCheckMode: provider.pricingCheckMode ?? "automated",
+      sourceUrl: provider.officialPricingUrl,
+    }));
 }
 
 async function readState(statePath) {

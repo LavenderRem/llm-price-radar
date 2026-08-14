@@ -172,7 +172,7 @@ test("checkPricing persists a changed official source and its report", async () 
   });
 });
 
-test("checkPricing uses each provider's existing official pricing URL by default", async () => {
+test("checkPricing excludes coding-plans-only providers from default model API sources", async () => {
   await withTemporaryPaths(async ({ statePath, reportPath }) => {
     const requestedUrls = [];
     const result = await checkPricing({
@@ -186,11 +186,15 @@ test("checkPricing uses each provider's existing official pricing URL by default
       reportPath,
     });
 
+    const codingPlansOnlyProviders = providers.filter((provider) => provider.catalogScope === "coding-plans-only");
+    const defaultProviders = providers.filter((provider) => provider.catalogScope !== "coding-plans-only");
+
+    assert.deepEqual(codingPlansOnlyProviders.map((provider) => provider.id).sort(), ["codebuddy", "trae"]);
     assert.deepEqual(
       requestedUrls.sort(),
-      providers.filter((provider) => provider.pricingCheckMode !== "manual").map((provider) => provider.officialPricingUrl).sort(),
+      defaultProviders.filter((provider) => provider.pricingCheckMode !== "manual").map((provider) => provider.officialPricingUrl).sort(),
     );
-    assert.deepEqual(result.entries.map((entry) => entry.sourceUrl).sort(), providers.map((provider) => provider.officialPricingUrl).sort());
+    assert.deepEqual(result.entries.map((entry) => entry.sourceUrl).sort(), defaultProviders.map((provider) => provider.officialPricingUrl).sort());
   });
 });
 

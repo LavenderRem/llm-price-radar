@@ -12,8 +12,8 @@ export const providers = [
   { id: "aliyun", name: "阿里云百炼", billingCurrency: "CNY", officialPricingUrl: "https://help.aliyun.com/zh/model-studio/model-pricing" },
   { id: "zhipu", name: "智谱开放平台", billingCurrency: "CNY", officialPricingUrl: "https://open.bigmodel.cn/pricing", pricingCheckMode: "manual" },
   { id: "cursor", name: "Cursor", billingCurrency: "USD", officialPricingUrl: "https://cursor.com/pricing" },
-  { id: "trae", name: "TRAE", billingCurrency: "USD", officialPricingUrl: "https://www.trae.ai/pricing" },
-  { id: "codebuddy", name: "腾讯 CodeBuddy", billingCurrency: "CNY", officialPricingUrl: "https://copilot.tencent.com/pricing" },
+  { id: "trae", name: "TRAE", billingCurrency: "USD", officialPricingUrl: "https://www.trae.ai/pricing", catalogScope: "coding-plans-only" },
+  { id: "codebuddy", name: "腾讯 CodeBuddy", billingCurrency: "CNY", officialPricingUrl: "https://copilot.tencent.com/pricing", catalogScope: "coding-plans-only" },
 ];
 
 export function defineModel(model) {
