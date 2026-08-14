@@ -148,6 +148,14 @@ test("opens coding plans and filters to IDE plans", async () => {
   expect(screen.queryByText("CLI / 编程 Agent 专属示例")).not.toBeInTheDocument();
 });
 
+test("keeps the selected display currency after opening coding plans", async () => {
+  const user = userEvent.setup();
+  render(<App />);
+  await user.click(screen.getByRole("button", { name: "USD" }));
+  await user.click(screen.getByRole("button", { name: "编程套餐" }));
+  expect(screen.getByRole("button", { name: "USD" })).toHaveAttribute("aria-pressed", "true");
+});
+
 test("keeps no more than three selected plans in the plan comparison tray", async () => {
   const user = userEvent.setup();
   render(<App />);
@@ -256,7 +264,6 @@ git commit -m "feat(套餐): 接入每日官方来源检查"
 
 **Files:**
 
-- Modify: `site/tests/appNavigation.test.jsx`
 - Modify: `README.md`
 
 **Interfaces:**
@@ -264,38 +271,20 @@ git commit -m "feat(套餐): 接入每日官方来源检查"
 - Consumes: Tasks 1–3 的已实现页面、目录和检查命令。
 - Produces: 对核心用户路径、数据更新边界和 GitHub Pages 构建的回归证据。
 
-- [ ] **Step 1: 写出页面与更新边界的失败断言**
+- [ ] **Step 1: 补充公开数据与更新边界说明**
 
-```jsx
-test("switching between model prices and coding plans retains the selected display currency", async () => {
-  const user = userEvent.setup();
-  render(<App />);
-  await user.click(screen.getByRole("button", { name: "USD" }));
-  await user.click(screen.getByRole("button", { name: "编程套餐" }));
-  expect(screen.getByRole("button", { name: "USD" })).toHaveAttribute("aria-pressed", "true");
-});
-```
+README 添加「个人编程套餐」章节，说明官方来源、未公开字段显示规则和每日检查不会直接自动修改公开数据。
 
-- [ ] **Step 2: 运行该断言，确认在缺少状态复用时失败**
-
-Run: `npm test --prefix site -- appNavigation.test.jsx`
-
-Expected: FAIL，直至套餐页采用现有全局币种状态。
-
-- [ ] **Step 3: 以最小改动修复状态或说明**
-
-确保套餐页复用 `App` 的 `state.currency`，而不是自行初始化币种。README 添加「个人编程套餐」章节，说明官方来源、未公开字段显示规则和每日检查不会直接自动修改公开数据。
-
-- [ ] **Step 4: 运行完整验证并做本地视觉检查**
+- [ ] **Step 2: 运行完整验证并做本地视觉检查**
 
 Run: `npm run test:pricing-sync --prefix site && npm test --prefix site && GITHUB_ACTIONS=true npm run build --prefix site`
 
 Expected: 所有测试与 GitHub Pages 基础路径构建 PASS。随后运行 `npm run dev --prefix site`，在本地检查桌面和窄屏的套餐表格、筛选按钮、外链和三项清单均可用。
 
-- [ ] **Step 5: 提交本任务**
+- [ ] **Step 3: 提交本任务**
 
 ```bash
-git add site/tests/appNavigation.test.jsx README.md
+git add README.md
 git commit -m "test(套餐): 覆盖页面与更新边界"
 ```
 
