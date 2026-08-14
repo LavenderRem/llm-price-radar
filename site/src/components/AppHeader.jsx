@@ -5,6 +5,7 @@ import modelPriceMark from "../assets/brand/model-price-mark.png";
 const views = [
   { id: "pricing", label: "价格对比" },
   { id: "calculator", label: "成本估算" },
+  { id: "coding-plans", label: "编程套餐" },
   { id: "updates", label: "更新记录" },
   { id: "methodology", label: "计价说明" },
 ];

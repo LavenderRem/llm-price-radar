@@ -1612,6 +1612,260 @@ a:focus-visible {
   border-radius: var(--radius-sm);
 }
 
+.coding-plans-layout {
+  display: grid;
+  min-height: calc(100vh - 60px);
+  grid-template-columns: minmax(0, 1fr) 284px;
+  background: var(--surface);
+}
+
+.coding-plans-main {
+  min-width: 0;
+  padding: var(--space-6) var(--space-3) var(--space-4) var(--space-4);
+  border-right: 1px solid var(--line);
+}
+
+.coding-plans-intro {
+  margin-bottom: var(--space-3);
+}
+
+.coding-plans-intro p,
+.coding-plans-intro h2 {
+  margin: 0;
+}
+
+.coding-plans-intro p {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.coding-plans-intro h2 {
+  margin-top: var(--space-1);
+  color: var(--text);
+  font-size: 24px;
+}
+
+.plans-filter-bar {
+  display: flex;
+  overflow-x: auto;
+  padding-bottom: var(--space-3);
+  gap: var(--space-2);
+}
+
+.plans-filter-bar button {
+  min-height: 34px;
+  padding: 0 var(--space-3);
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.plans-filter-bar button.is-active {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.coding-plans-table-shell {
+  overflow-x: auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.coding-plans-table {
+  width: 100%;
+  min-width: 1020px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.coding-plans-table th,
+.coding-plans-table td {
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--line);
+}
+
+.coding-plans-table th {
+  color: var(--text);
+  background: var(--bg);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.coding-plans-table td {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.coding-plans-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.coding-plans-table tbody tr.is-selected td {
+  background: var(--bg);
+  border-top: 1px solid var(--primary);
+  border-bottom: 1px solid var(--primary);
+}
+
+.coding-plans-table tbody tr.is-selected td:first-child {
+  border-left: 1px solid var(--primary);
+}
+
+.coding-plans-table tbody tr.is-selected td:last-child {
+  border-right: 1px solid var(--primary);
+}
+
+.coding-plans-table input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  accent-color: var(--primary);
+}
+
+.plan-identity {
+  display: grid;
+  min-width: 120px;
+  gap: var(--space-1);
+}
+
+.plan-identity strong {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.plan-identity span,
+.plans-price small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.plans-price {
+  font-family: var(--font-number);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.plans-price strong {
+  color: var(--primary);
+}
+
+.plans-price small {
+  display: block;
+  margin-top: var(--space-1);
+  font-family: var(--font-ui);
+}
+
+.plans-surface-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.plans-surface-tags span {
+  padding: 1px var(--space-2);
+  color: var(--primary);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.plans-comparison-tray {
+  padding: var(--space-6) var(--space-4);
+  background: var(--bg);
+}
+
+.plans-comparison-heading {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.plans-comparison-heading strong {
+  color: var(--text);
+  font-size: 16px;
+}
+
+.plans-comparison-heading span,
+.plans-comparison-empty {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.plans-comparison-empty {
+  padding: var(--space-4);
+  margin: var(--space-4) 0 0;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.plans-comparison-list {
+  display: grid;
+  padding: 0;
+  margin: var(--space-4) 0 0;
+  list-style: none;
+  gap: var(--space-2);
+}
+
+.plans-comparison-list li {
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.plans-comparison-list li > div {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.plans-comparison-list li > div > strong {
+  color: var(--primary);
+  font-family: var(--font-number);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.plans-comparison-list dl {
+  display: grid;
+  margin: var(--space-3) 0;
+  gap: var(--space-2);
+}
+
+.plans-comparison-list dl > div {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.plans-comparison-list dt {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.plans-comparison-list dd {
+  margin: 0;
+  color: var(--text);
+  font-size: 12px;
+}
+
+.plans-comparison-list button {
+  padding: 0;
+  color: var(--primary);
+  background: transparent;
+  border: 0;
+  font-size: 12px;
+}
+
 @media (max-width: 1199px) {
   .verified-at span {
     display: none;
@@ -1640,6 +1894,18 @@ a:focus-visible {
   .comparison-slot .comparison-tray,
   .comparison-slot .comparison-limit {
     display: none;
+  }
+
+  .coding-plans-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .coding-plans-main {
+    border-right: 0;
+  }
+
+  .plans-comparison-tray {
+    border-top: 1px solid var(--line);
   }
 
   .filter-bar {
@@ -2059,6 +2325,22 @@ a:focus-visible {
   .calculator-view {
     min-height: calc(100vh - 106px);
     padding: 22px 14px 86px;
+  }
+
+  .coding-plans-layout {
+    min-height: calc(100vh - 106px);
+  }
+
+  .coding-plans-main {
+    padding: 22px 12px var(--space-4);
+  }
+
+  .coding-plans-table-shell {
+    margin-inline: -2px;
+  }
+
+  .plans-comparison-tray {
+    padding: var(--space-4) var(--space-3) 48px;
   }
 
   .estimator-fields {
