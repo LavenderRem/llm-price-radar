@@ -446,6 +446,67 @@ test("checkPricing ignores dynamic page content when the extracted pricing evide
   });
 });
 
+test("checkPricing migrates legacy source state without reporting an API price change", async () => {
+  await withTemporaryPaths(async ({ statePath, reportPath }) => {
+    const sourceUrl = "https://developers.openai.com/api/docs/pricing";
+    await writeFile(statePath, `${JSON.stringify({
+      checkedAt: "2026-08-13T03:28:13.210Z",
+      sources: { [sourceUrl]: fingerprint("legacy full page fingerprint") },
+      sourceScope: "providers[].officialPricingUrl",
+    })}\n`);
+
+    const result = await checkPricing({
+      dryRun: true,
+      fetchImpl: async () => ({ ok: true, text: async () => "Input $3.00 per 1M tokens" }),
+      now: "2026-08-14T00:00:00.000Z",
+      sourceEntries: [{ providerId: "openai", providerName: "OpenAI", sourceUrl }],
+      codingPlanEntries: [],
+      statePath,
+      reportPath,
+    });
+
+    assert.equal(result.entries[0].baseline, false);
+    assert.equal(result.entries[0].priceChanged, false);
+    assert.equal(result.changed, false);
+    await assert.rejects(readFile(reportPath, "utf8"), { code: "ENOENT" });
+  });
+});
+
+test("checkPricing persists a legacy price baseline without a report and detects the next real change", async () => {
+  await withTemporaryPaths(async ({ statePath, reportPath }) => {
+    const sourceUrl = "https://developers.openai.com/api/docs/pricing";
+    const sourceEntry = { providerId: "openai", providerName: "OpenAI", sourceUrl };
+    const originalReport = "# Existing report\n";
+    await writeFile(statePath, `${JSON.stringify({
+      sources: { [sourceUrl]: fingerprint("legacy full page fingerprint") },
+    })}\n`);
+    await writeFile(reportPath, originalReport);
+
+    const migration = await checkPricing({
+      fetchImpl: async () => ({ ok: true, text: async () => "Input $3.00 per 1M tokens" }),
+      sourceEntries: [sourceEntry],
+      codingPlanEntries: [],
+      statePath,
+      reportPath,
+    });
+
+    assert.equal(migration.changed, false);
+    assert.equal(JSON.parse(await readFile(statePath, "utf8")).priceSources[sourceUrl], fingerprint("Input $3.00 per 1M tokens"));
+    assert.equal(await readFile(reportPath, "utf8"), originalReport);
+
+    const nextCheck = await checkPricing({
+      fetchImpl: async () => ({ ok: true, text: async () => "Input $4.00 per 1M tokens" }),
+      sourceEntries: [sourceEntry],
+      codingPlanEntries: [],
+      statePath,
+      reportPath,
+    });
+
+    assert.equal(nextCheck.entries[0].priceChanged, true);
+    assert.equal(nextCheck.changed, true);
+  });
+});
+
 test("checkPricing reports a changed pricing evidence fingerprint", async () => {
   await withTemporaryPaths(async ({ statePath, reportPath }) => {
     const sourceUrl = "https://developers.openai.com/api/docs/pricing";
@@ -513,8 +574,10 @@ test("daily pricing workflow schedules checks and opens a pull request", async (
   assert.match(workflow, /schedule:/);
   assert.match(workflow, /cron:\s*["']0 1 \* \* \*["']/);
   assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /id:\s*pricing_check/);
   assert.match(workflow, /npm run pricing:check/);
   assert.match(workflow, /peter-evans\/create-pull-request@v7/);
+  assert.match(workflow, /if:\s*steps\.pricing_check\.outputs\.changed\s*==\s*['"]true['"]/);
   assert.match(workflow, /base:\s*codex\/model-price-site/);
   assert.doesNotMatch(workflow, /auto-merge|gh pr merge|deploy/i);
 });

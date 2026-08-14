@@ -56,10 +56,14 @@ async function readState(statePath) {
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
       throw new Error("invalid pricing source state");
     }
+    const legacyPriceSources = !Object.hasOwn(parsed, "priceSources") && parsed.sources && typeof parsed.sources === "object"
+      ? parsed.sources
+      : {};
     return {
       checkedAt: parsed.checkedAt ?? "",
       pageSources: parsed.pageSources ?? parsed.sources ?? {},
       priceSources: parsed.priceSources ?? {},
+      legacyPriceSources,
       codingPlanPageSources: parsed.codingPlanPageSources ?? {},
       codingPlanPriceSources: parsed.codingPlanPriceSources ?? {},
     };
@@ -69,6 +73,7 @@ async function readState(statePath) {
         checkedAt: "",
         pageSources: {},
         priceSources: {},
+        legacyPriceSources: {},
         codingPlanPageSources: {},
         codingPlanPriceSources: {},
       };
@@ -187,13 +192,17 @@ export async function checkPricing({
   }));
   const codingPlanFingerprintsByUrl = new Map(codingPlanFetches);
 
-  const entries = [...fetched.map((entry) => ({
-    ...entry,
-    baseline: !priorState.priceSources[entry.sourceUrl],
-    pageChanged: priorState.pageSources[entry.sourceUrl] !== entry.pageFingerprint,
-    priceChanged: Boolean(priorState.priceSources[entry.sourceUrl])
-      && priorState.priceSources[entry.sourceUrl] !== entry.priceFingerprint,
-  })), ...manualEntries];
+  const entries = [...fetched.map((entry) => {
+    const hasLegacyPriceSource = Object.hasOwn(priorState.legacyPriceSources, entry.sourceUrl);
+    return {
+      ...entry,
+      baseline: !priorState.priceSources[entry.sourceUrl] && !hasLegacyPriceSource,
+      pageChanged: priorState.pageSources[entry.sourceUrl] !== entry.pageFingerprint,
+      priceChanged: Boolean(priorState.priceSources[entry.sourceUrl])
+        && priorState.priceSources[entry.sourceUrl] !== entry.priceFingerprint,
+      legacyPriceBaseline: hasLegacyPriceSource,
+    };
+  }), ...manualEntries];
   const checkedCodingPlanEntries = automatedCodingPlanEntries.map((entry) => {
     const fingerprints = codingPlanFingerprintsByUrl.get(entry.sourceUrl);
     return {
@@ -210,6 +219,7 @@ export async function checkPricing({
   });
   const checkedCodingPlanEntriesWithManual = [...checkedCodingPlanEntries, ...manualCodingPlanEntries];
   const changed = [...entries, ...checkedCodingPlanEntriesWithManual].some((entry) => entry.baseline || entry.priceChanged);
+  const legacyPriceMigrationRequired = entries.some((entry) => entry.legacyPriceBaseline);
   const report = renderReport({
     ...buildSyncReport(entries, now),
     codingPlanEntries: checkedCodingPlanEntriesWithManual,
@@ -223,9 +233,13 @@ export async function checkPricing({
     sourceScope: "providers[].officialPricingUrl",
   };
 
-  if (changed && !dryRun) {
-    await Promise.all([mkdir(dirname(statePath), { recursive: true }), mkdir(dirname(reportPath), { recursive: true })]);
+  if ((changed || legacyPriceMigrationRequired) && !dryRun) {
+    await mkdir(dirname(statePath), { recursive: true });
     await writeFile(statePath, `${JSON.stringify(nextState, null, 2)}\n`);
+  }
+
+  if (changed && !dryRun) {
+    await mkdir(dirname(reportPath), { recursive: true });
     await writeFile(reportPath, report);
   }
 
