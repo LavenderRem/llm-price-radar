@@ -4,7 +4,7 @@ export const providers = [
   { id: "google", name: "Google", billingCurrency: "USD", officialPricingUrl: "https://ai.google.dev/gemini-api/docs/pricing" },
   { id: "deepseek", name: "DeepSeek", billingCurrency: "CNY", officialPricingUrl: "https://api-docs.deepseek.com/quick_start/pricing" },
   { id: "aliyun", name: "阿里云百炼", billingCurrency: "CNY", officialPricingUrl: "https://help.aliyun.com/zh/model-studio/model-pricing" },
-  { id: "zhipu", name: "智谱开放平台", billingCurrency: "CNY", officialPricingUrl: "https://open.bigmodel.cn/" },
+  { id: "zhipu", name: "智谱开放平台", billingCurrency: "CNY", officialPricingUrl: "https://open.bigmodel.cn/pricing" },
 ];
 
 export function defineModel(model) {

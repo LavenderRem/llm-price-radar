@@ -72,6 +72,12 @@ test("assertSourceResult accepts every current catalog pricing source", () => {
   }
 });
 
+test("every provider's daily source points to its declared pricing page", () => {
+  for (const provider of providers) {
+    assert.match(provider.officialPricingUrl, /pricing/i, `${provider.id} must use a pricing source`);
+  }
+});
+
 test("fetchOfficialSource returns fixture content for a successful HTTPS response", async () => {
   const content = await readFile(fixturePath, "utf8");
   const result = await fetchOfficialSource("https://developers.openai.com/api/docs/pricing", async () => ({
