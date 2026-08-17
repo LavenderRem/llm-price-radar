@@ -16,7 +16,7 @@ describe("App", () => {
     render(<App />);
 
     expect(screen.getByText(/价格数据核验于 2026-08-06/)).toBeInTheDocument();
-    expect(screen.getByText(/官方来源检查于 2026-08-13/)).toBeInTheDocument();
+    expect(screen.getByText(/官方来源检查于 2026-08-17/)).toBeInTheDocument();
   });
 
   it("通过键盘切换三个导航视图的活动态", async () => {
@@ -36,6 +36,12 @@ describe("App", () => {
     updates.focus();
     await user.keyboard(" ");
     expect(updates).toHaveAttribute("aria-current", "page");
+  });
+
+  it("显示编程套餐导航入口", () => {
+    render(<App />);
+
+    expect(screen.getByRole("button", { name: "编程套餐" })).toBeInTheDocument();
   });
 
   it("打开模型详情后展示计费信息，关闭时恢复详情按钮焦点", async () => {

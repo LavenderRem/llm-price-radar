@@ -30,7 +30,7 @@ function httpsUrl(value, path) {
   }
 }
 
-const PROVIDER_IDS = ["openai", "anthropic", "google", "deepseek", "aliyun", "zhipu"];
+const PROVIDER_IDS = ["openai", "anthropic", "google", "deepseek", "aliyun", "zhipu", "cursor", "trae", "codebuddy"];
 const UPDATE_TYPES = new Set([
   "price-increased",
   "price-decreased",
@@ -116,6 +116,8 @@ export function assertCatalog({ providers, models, exchangeRates, updates }) {
   }
   for (const providerId of PROVIDER_IDS) {
     const count = modelCountByProvider.get(providerId);
+    if (count === 0 && providerById.get(providerId).catalogScope === "coding-plans-only") continue;
+    if (count === 0) throw new Error(`models.providerId.${providerId}`);
     if (count < 2 || count > 3) throw new Error(`models.providerId.${providerId}`);
   }
 

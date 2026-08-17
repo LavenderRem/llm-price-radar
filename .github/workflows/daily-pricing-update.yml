@@ -23,10 +23,18 @@ jobs:
       - name: 安装依赖
         run: npm ci --prefix site
 
-      - name: 检查官方价格来源
-        run: npm run pricing:check --prefix site
+      - id: pricing_check
+        name: 检查官方价格来源
+        run: |
+          npm run pricing:check --prefix site
+          if git diff --quiet -- site/data/pricing-sync-report.md; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: 创建或更新价格检查 PR
+        if: steps.pricing_check.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v7
         with:
           branch: automation/daily-pricing-update
