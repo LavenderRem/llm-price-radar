@@ -10,14 +10,57 @@ import {
   extractPricingEvidence,
   fetchOfficialSource,
   fingerprint,
+  fingerprintCodingPlanFacts,
 } from "../scripts/pricing-sync-core.mjs";
-import { checkPricing } from "../scripts/check-pricing.mjs";
+import { checkPricing, codingPlanSources } from "../scripts/check-pricing.mjs";
 import { models, providers } from "../src/data/catalog.js";
+import { codingPlans } from "../src/data/codingPlans.js";
 
 const fixturePath = new URL("./fixtures/openai-pricing.md", import.meta.url);
 
 test("fingerprint changes when source content changes", () => {
   assert.notEqual(fingerprint("价格 2.00"), fingerprint("价格 3.00"));
+});
+
+test("pricing evidence ignores marketing-only pricing copy", () => {
+  assert.throws(
+    () => extractPricingEvidence("<p>Pricing for professional teams</p>"),
+    /no pricing evidence found/,
+  );
+});
+
+test("pricing evidence joins an amount and its currency split across adjacent nodes", () => {
+  assert.match(
+    extractPricingEvidence("<div><span>12</span><span>元</span></div>"),
+    /12 元/,
+  );
+});
+
+test("pricing evidence keeps a price when an empty layout span separates its currency", () => {
+  assert.match(
+    extractPricingEvidence("<p>12<span class=\"help-letter-space\"></span>元</p>"),
+    /12 元/,
+  );
+});
+
+test("coding plan catalog fingerprint ignores copy but changes for price facts", () => {
+  const current = {
+    id: "cursor-pro",
+    price: { amount: 20, currency: "USD", period: "month" },
+    includedUsage: "官方额度",
+    allowancePolicy: { label: "按官方规则" },
+    codingSurfaces: ["IDE"],
+    officialUrl: "https://cursor.com/pricing",
+  };
+
+  assert.equal(
+    fingerprintCodingPlanFacts({ ...current, officialSummary: "新版营销文案" }),
+    fingerprintCodingPlanFacts(current),
+  );
+  assert.notEqual(
+    fingerprintCodingPlanFacts({ ...current, price: { ...current.price, amount: 25 } }),
+    fingerprintCodingPlanFacts(current),
+  );
 });
 
 test("assertSourceResult rejects an invalid source with its provider id", () => {
@@ -132,6 +175,20 @@ const openAiSource = {
   sourceUrl: "https://developers.openai.com/api/docs/models/gpt-5.6-terra",
 };
 
+const cursorPlanSource = {
+  id: "cursor-pro",
+  providerId: "cursor",
+  providerName: "Cursor",
+  productName: "Cursor",
+  planName: "Pro",
+  price: { amount: 20, currency: "USD", period: "month" },
+  includedUsage: "官方额度",
+  allowancePolicy: { status: "published", label: "按官方规则" },
+  codingSurfaces: ["IDE"],
+  officialUrl: "https://cursor.com/pricing",
+  sourceUrl: "https://cursor.com/pricing",
+};
+
 async function withTemporaryPaths(run) {
   const directory = await mkdtemp(join(tmpdir(), "llm-price-check-"));
   const paths = {
@@ -149,9 +206,10 @@ async function withTemporaryPaths(run) {
 test("checkPricing persists a changed official source and its report", async () => {
   await withTemporaryPaths(async ({ statePath, reportPath }) => {
     const result = await checkPricing({
-      fetchImpl: async () => ({ ok: true, text: async () => "current official price" }),
+      fetchImpl: async () => ({ ok: true, text: async () => "current official price $20" }),
       now: "2026-08-07T00:00:00.000Z",
       sourceEntries: [openAiSource],
+      codingPlanEntries: [],
       statePath,
       reportPath,
     });
@@ -167,30 +225,168 @@ test("checkPricing persists a changed official source and its report", async () 
       priceSources: {
         [openAiSource.sourceUrl]: result.entries[0].priceFingerprint,
       },
+      codingPlanPageSources: {},
+      codingPlanPriceSources: {},
       sourceScope: "providers[].officialPricingUrl",
     });
   });
 });
 
-test("checkPricing uses each provider's existing official pricing URL by default", async () => {
+test("checkPricing excludes coding-plans-only providers from default model API sources", async () => {
   await withTemporaryPaths(async ({ statePath, reportPath }) => {
     const requestedUrls = [];
     const result = await checkPricing({
       dryRun: true,
       fetchImpl: async (sourceUrl) => {
         requestedUrls.push(sourceUrl);
-        return { ok: true, text: async () => "current official price" };
+        return { ok: true, text: async () => "current official price $20" };
       },
       now: "2026-08-07T00:00:00.000Z",
+      codingPlanEntries: [],
       statePath,
       reportPath,
     });
 
+    const codingPlansOnlyProviders = providers.filter((provider) => provider.catalogScope === "coding-plans-only");
+    const defaultProviders = providers.filter((provider) => provider.catalogScope !== "coding-plans-only");
+
+    assert.deepEqual(codingPlansOnlyProviders.map((provider) => provider.id).sort(), ["codebuddy", "cursor", "trae"]);
     assert.deepEqual(
       requestedUrls.sort(),
-      providers.filter((provider) => provider.pricingCheckMode !== "manual").map((provider) => provider.officialPricingUrl).sort(),
+      defaultProviders.filter((provider) => provider.pricingCheckMode !== "manual").map((provider) => provider.officialPricingUrl).sort(),
     );
-    assert.deepEqual(result.entries.map((entry) => entry.sourceUrl).sort(), providers.map((provider) => provider.officialPricingUrl).sort());
+    assert.deepEqual(result.entries.map((entry) => entry.sourceUrl).sort(), defaultProviders.map((provider) => provider.officialPricingUrl).sort());
+  });
+});
+
+test("coding plan source changes are reported as candidates without changing the catalog", async () => {
+  await withTemporaryPaths(async ({ statePath, reportPath }) => {
+    const catalogPath = new URL("../src/data/codingPlans.js", import.meta.url);
+    const catalogBefore = await readFile(catalogPath, "utf8");
+    await writeFile(statePath, `${JSON.stringify({
+      codingPlanPageSources: { [cursorPlanSource.sourceUrl]: fingerprint("Pro $20/month") },
+      codingPlanPriceSources: { [cursorPlanSource.sourceUrl]: fingerprint(extractPricingEvidence("Pro $20/month")) },
+    })}\n`);
+
+    const result = await checkPricing({
+      dryRun: true,
+      codingPlanEntries: [cursorPlanSource],
+      fetchImpl: async () => ({ ok: true, text: async () => "Pro $25/month" }),
+      now: "2026-08-14T00:00:00.000Z",
+      reportPath,
+      sourceEntries: [],
+      statePath,
+    });
+
+    assert.equal(result.codingPlanEntries[0].priceChanged, true);
+    assert.equal(result.codingPlanEntries[0].candidateChange, true);
+    assert.match(result.report, /个人编程套餐/);
+    assert.match(result.report, /候选价格变更/);
+    assert.equal(await readFile(catalogPath, "utf8"), catalogBefore);
+    assert.equal((await readFile(statePath, "utf8")).includes("codingPlanPriceSources"), true);
+    await assert.rejects(readFile(reportPath, "utf8"), { code: "ENOENT" });
+  });
+});
+
+test("coding plan sources fetch each shared official URL once", async () => {
+  await withTemporaryPaths(async ({ statePath, reportPath }) => {
+    const requestedUrls = [];
+    const result = await checkPricing({
+      dryRun: true,
+      codingPlanEntries: [cursorPlanSource, { ...cursorPlanSource, id: "cursor-free", planName: "Free" }],
+      fetchImpl: async (sourceUrl) => {
+        requestedUrls.push(sourceUrl);
+        return { ok: true, text: async () => "Pro $20/month" };
+      },
+      sourceEntries: [],
+      statePath,
+      reportPath,
+    });
+
+    assert.deepEqual(requestedUrls, [cursorPlanSource.sourceUrl]);
+    assert.equal(result.codingPlanEntries.length, 2);
+  });
+});
+
+test("a shared coding plan source reports one source candidate instead of every tier", async () => {
+  await withTemporaryPaths(async ({ statePath, reportPath }) => {
+    await writeFile(statePath, `${JSON.stringify({
+      codingPlanPageSources: { [cursorPlanSource.sourceUrl]: fingerprint("Cursor Pro $20/month") },
+      codingPlanPriceSources: { [cursorPlanSource.sourceUrl]: fingerprint(extractPricingEvidence("Cursor Pro $20/month")) },
+    })}\n`);
+
+    const result = await checkPricing({
+      dryRun: true,
+      codingPlanEntries: [cursorPlanSource, { ...cursorPlanSource, id: "cursor-free", planName: "Free" }],
+      fetchImpl: async () => ({ ok: true, text: async () => "Cursor Pro $25/month" }),
+      sourceEntries: [],
+      statePath,
+      reportPath,
+    });
+
+    assert.equal(result.codingPlanEntries.filter((entry) => entry.candidateChange).length, 1);
+    assert.match(result.report, /Cursor \/ Pro、Free/);
+  });
+});
+
+test("a shared official source feeds model and coding plan checks once", async () => {
+  await withTemporaryPaths(async ({ statePath, reportPath }) => {
+    const requestedUrls = [];
+    await checkPricing({
+      dryRun: true,
+      codingPlanEntries: [cursorPlanSource],
+      fetchImpl: async (sourceUrl) => {
+        requestedUrls.push(sourceUrl);
+        return { ok: true, text: async () => "Pro $20/month" };
+      },
+      sourceEntries: [{ providerId: "cursor", providerName: "Cursor", sourceUrl: cursorPlanSource.sourceUrl }],
+      statePath,
+      reportPath,
+    });
+
+    assert.deepEqual(requestedUrls, [cursorPlanSource.sourceUrl]);
+  });
+});
+
+test("a failed automated coding plan source leaves state and report untouched", async () => {
+  await withTemporaryPaths(async ({ statePath, reportPath }) => {
+    const originalState = '{"sources":{"https://existing.example":"unchanged"}}\n';
+    const originalReport = "# Existing report\n";
+    await writeFile(statePath, originalState);
+    await writeFile(reportPath, originalReport);
+
+    await assert.rejects(
+      checkPricing({
+        codingPlanEntries: [cursorPlanSource],
+        fetchImpl: async () => ({ ok: false, status: 503 }),
+        sourceEntries: [],
+        statePath,
+        reportPath,
+      }),
+      /source request failed/,
+    );
+
+    assert.equal(await readFile(statePath, "utf8"), originalState);
+    assert.equal(await readFile(reportPath, "utf8"), originalReport);
+  });
+});
+
+test("CodeBuddy coding plan sources are explicitly manual and only request human verification", async () => {
+  await withTemporaryPaths(async ({ statePath, reportPath }) => {
+    const codeBuddySources = codingPlanSources().filter((entry) => entry.providerId === "codebuddy");
+    const result = await checkPricing({
+      dryRun: true,
+      codingPlanEntries: codeBuddySources,
+      fetchImpl: async () => { throw new Error("manual source must not be fetched"); },
+      sourceEntries: [],
+      statePath,
+      reportPath,
+    });
+
+    assert.equal(codeBuddySources.every((entry) => entry.pricingCheckMode === "manual"), true);
+    assert.equal(result.codingPlanEntries.every((entry) => entry.manualReviewRequired), true);
+    assert.match(result.report, /需人工核验/);
+    assert.match(result.report, /未向无人值守请求提供可提取的套餐价格证据/);
   });
 });
 
@@ -206,6 +402,7 @@ test("checkPricing leaves persistent files unchanged when a source request fails
         fetchImpl: async () => ({ ok: false }),
         now: "2026-08-07T00:00:00.000Z",
         sourceEntries: [openAiSource],
+        codingPlanEntries: [],
         statePath,
         reportPath,
       }),
@@ -235,6 +432,7 @@ test("checkPricing aborts timed out source requests without changing persistent 
         }),
         now: "2026-08-07T00:00:00.000Z",
         sourceEntries: [openAiSource],
+        codingPlanEntries: [],
         statePath,
         reportPath,
         timeoutMs: 5,
@@ -251,9 +449,10 @@ test("checkPricing dry run detects a change without persisting files", async () 
   await withTemporaryPaths(async ({ statePath, reportPath }) => {
     const result = await checkPricing({
       dryRun: true,
-      fetchImpl: async () => ({ ok: true, text: async () => "current official price" }),
+      fetchImpl: async () => ({ ok: true, text: async () => "current official price $20" }),
       now: "2026-08-07T00:00:00.000Z",
       sourceEntries: [openAiSource],
+      codingPlanEntries: [],
       statePath,
       reportPath,
     });
@@ -277,6 +476,7 @@ test("checkPricing ignores dynamic page content when the extracted pricing evide
       fetchImpl: async () => ({ ok: true, text: async () => '<main><p>Input $2.00 per 1M tokens</p><script>build=2</script></main>' }),
       now: "2026-08-13T00:00:00.000Z",
       sourceEntries: [{ providerId: "openai", providerName: "OpenAI", sourceUrl }],
+      codingPlanEntries: [],
       statePath,
       reportPath,
     });
@@ -285,6 +485,67 @@ test("checkPricing ignores dynamic page content when the extracted pricing evide
     assert.equal(result.entries[0].priceChanged, false);
     assert.equal(result.entries[0].pageChanged, true);
     await assert.rejects(readFile(reportPath, "utf8"), { code: "ENOENT" });
+  });
+});
+
+test("checkPricing migrates legacy source state without reporting an API price change", async () => {
+  await withTemporaryPaths(async ({ statePath, reportPath }) => {
+    const sourceUrl = "https://developers.openai.com/api/docs/pricing";
+    await writeFile(statePath, `${JSON.stringify({
+      checkedAt: "2026-08-13T03:28:13.210Z",
+      sources: { [sourceUrl]: fingerprint("legacy full page fingerprint") },
+      sourceScope: "providers[].officialPricingUrl",
+    })}\n`);
+
+    const result = await checkPricing({
+      dryRun: true,
+      fetchImpl: async () => ({ ok: true, text: async () => "Input $3.00 per 1M tokens" }),
+      now: "2026-08-14T00:00:00.000Z",
+      sourceEntries: [{ providerId: "openai", providerName: "OpenAI", sourceUrl }],
+      codingPlanEntries: [],
+      statePath,
+      reportPath,
+    });
+
+    assert.equal(result.entries[0].baseline, false);
+    assert.equal(result.entries[0].priceChanged, false);
+    assert.equal(result.changed, false);
+    await assert.rejects(readFile(reportPath, "utf8"), { code: "ENOENT" });
+  });
+});
+
+test("checkPricing persists a legacy price baseline without a report and detects the next real change", async () => {
+  await withTemporaryPaths(async ({ statePath, reportPath }) => {
+    const sourceUrl = "https://developers.openai.com/api/docs/pricing";
+    const sourceEntry = { providerId: "openai", providerName: "OpenAI", sourceUrl };
+    const originalReport = "# Existing report\n";
+    await writeFile(statePath, `${JSON.stringify({
+      sources: { [sourceUrl]: fingerprint("legacy full page fingerprint") },
+    })}\n`);
+    await writeFile(reportPath, originalReport);
+
+    const migration = await checkPricing({
+      fetchImpl: async () => ({ ok: true, text: async () => "Input $3.00 per 1M tokens" }),
+      sourceEntries: [sourceEntry],
+      codingPlanEntries: [],
+      statePath,
+      reportPath,
+    });
+
+    assert.equal(migration.changed, false);
+    assert.equal(JSON.parse(await readFile(statePath, "utf8")).priceSources[sourceUrl], fingerprint("Input $3.00 per 1M tokens"));
+    assert.equal(await readFile(reportPath, "utf8"), originalReport);
+
+    const nextCheck = await checkPricing({
+      fetchImpl: async () => ({ ok: true, text: async () => "Input $4.00 per 1M tokens" }),
+      sourceEntries: [sourceEntry],
+      codingPlanEntries: [],
+      statePath,
+      reportPath,
+    });
+
+    assert.equal(nextCheck.entries[0].priceChanged, true);
+    assert.equal(nextCheck.changed, true);
   });
 });
 
@@ -300,6 +561,7 @@ test("checkPricing reports a changed pricing evidence fingerprint", async () => 
       fetchImpl: async () => ({ ok: true, text: async () => "Input $3.00 per 1M tokens" }),
       now: "2026-08-13T00:00:00.000Z",
       sourceEntries: [{ providerId: "openai", providerName: "OpenAI", sourceUrl }],
+      codingPlanEntries: [],
       statePath,
       reportPath,
     });
@@ -316,6 +578,7 @@ test("checkPricing identifies the provider when a source contains no pricing evi
       checkPricing({
         fetchImpl: async () => ({ ok: true, text: async () => "welcome" }),
         sourceEntries: [{ providerId: "openai", providerName: "OpenAI", sourceUrl: "https://developers.openai.com/api/docs/pricing" }],
+        codingPlanEntries: [],
         statePath,
         reportPath,
       }),
@@ -335,13 +598,14 @@ test("checkPricing reports client-rendered pricing sources for manual review wit
         sourceUrl: "https://open.bigmodel.cn/pricing",
         pricingCheckMode: "manual",
       }],
+      codingPlanEntries: [],
       statePath,
       reportPath,
     });
 
     assert.equal(result.changed, false);
     assert.equal(result.entries[0].manualReviewRequired, true);
-    assert.match(result.report, /需人工核对/);
+    assert.match(result.report, /需人工核验/);
   });
 });
 
@@ -352,8 +616,10 @@ test("daily pricing workflow schedules checks and opens a pull request", async (
   assert.match(workflow, /schedule:/);
   assert.match(workflow, /cron:\s*["']0 1 \* \* \*["']/);
   assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /id:\s*pricing_check/);
   assert.match(workflow, /npm run pricing:check/);
   assert.match(workflow, /peter-evans\/create-pull-request@v7/);
+  assert.match(workflow, /if:\s*steps\.pricing_check\.outputs\.changed\s*==\s*['"]true['"]/);
   assert.match(workflow, /base:\s*codex\/model-price-site/);
   assert.doesNotMatch(workflow, /auto-merge|gh pr merge|deploy/i);
 });

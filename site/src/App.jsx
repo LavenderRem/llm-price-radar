@@ -3,6 +3,7 @@ import Info from "lucide-react/dist/esm/icons/info.mjs";
 import { AppHeader } from "./components/AppHeader.jsx";
 import { ComparisonTray } from "./components/ComparisonTray.jsx";
 import { ComparisonView } from "./components/ComparisonView.jsx";
+import { CodingPlansView } from "./components/CodingPlansView.jsx";
 import { CostEstimator } from "./components/CostEstimator.jsx";
 import { EmptyState } from "./components/EmptyState.jsx";
 import { FilterBar } from "./components/FilterBar.jsx";
@@ -11,10 +12,12 @@ import { ModelDetail } from "./components/ModelDetail.jsx";
 import { PricingTable } from "./components/PricingTable.jsx";
 import { UpdatesView } from "./components/UpdatesView.jsx";
 import { models, providers } from "./data/catalog.js";
+import { codingPlans } from "./data/codingPlans.js";
 import { exchangeRates } from "./data/exchangeRates.js";
 import { updates } from "./data/updates.js";
 import pricingSourceState from "../data/pricing-source-state.json";
 import { sanitizeComparisonIds, toggleComparison } from "./domain/comparison.js";
+import { toggleCodingPlanComparison } from "./domain/codingPlans.js";
 import { filterAndSortModels } from "./domain/filters.js";
 import { normalizeModel } from "./domain/pricing.js";
 import { parseUrlState, serializeUrlState } from "./domain/urlState.js";
@@ -54,6 +57,8 @@ export function App() {
   const [view, setView] = useState("pricing");
   const [comparisonOpen, setComparisonOpen] = useState(false);
   const [comparisonLimitReached, setComparisonLimitReached] = useState(false);
+  const [selectedPlanIds, setSelectedPlanIds] = useState([]);
+  const [codingPlanComparisonLimitReached, setCodingPlanComparisonLimitReached] = useState(false);
   const comparisonTriggerRef = useRef(null);
   const comparisonCtaRef = useRef(null);
   const detailTriggerRef = useRef(null);
@@ -85,6 +90,14 @@ export function App() {
       const result = toggleComparison(current.compareIds, modelId);
       setComparisonLimitReached(result.limitReached);
       return { ...current, compareIds: result.ids };
+    });
+  };
+
+  const togglePlanCompare = (planId) => {
+    setSelectedPlanIds((current) => {
+      const result = toggleCodingPlanComparison(current, planId);
+      setCodingPlanComparisonLimitReached(result.limitReached);
+      return result.ids;
     });
   };
 
@@ -227,6 +240,15 @@ export function App() {
             />
           </aside>
         </main>
+      ) : view === "coding-plans" ? (
+        <CodingPlansView
+          plans={codingPlans}
+          currency={state.currency}
+          exchangeRates={exchangeRates}
+          selectedIds={selectedPlanIds}
+          onTogglePlan={togglePlanCompare}
+          comparisonLimitReached={codingPlanComparisonLimitReached}
+        />
       ) : view === "calculator" ? (
         <CostEstimator
           models={models}

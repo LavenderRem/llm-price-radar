@@ -24,9 +24,22 @@ describe("assertCatalog", () => {
       .toThrow("models[0].pricing[0].sourceUrl");
   });
 
-  it("接受六家服务商的完整目录", () => {
+  it("接受包含仅提供编程套餐服务商的完整目录", () => {
     expect(() => assertCatalog({ providers: catalogProviders, models, exchangeRates, updates })).not.toThrow();
+    expect(catalogProviders).toHaveLength(9);
+    expect(catalogProviders.map((provider) => provider.id)).toEqual(expect.arrayContaining([
+      "trae",
+      "codebuddy",
+    ]));
     expect(new Set(models.map((model) => model.providerId)).size).toBe(6);
+  });
+
+  it("拒绝非编程套餐专属服务商缺少模型", () => {
+    expect(() => assertCatalog({
+      providers: catalogProviders,
+      models: models.filter((model) => model.providerId !== "openai"),
+      exchangeRates,
+    })).toThrow("models.providerId.openai");
   });
 
   it("锁定 OpenAI 官方价格字面量", () => {
@@ -324,6 +337,7 @@ describe("assertCatalog", () => {
   it("每家服务商收录两个到三个具有公开 Token 价格的模型", () => {
     for (const provider of catalogProviders) {
       const providerModels = models.filter((model) => model.providerId === provider.id);
+      if (providerModels.length === 0) continue;
       expect(providerModels.length).toBeGreaterThanOrEqual(2);
       expect(providerModels.length).toBeLessThanOrEqual(3);
     }

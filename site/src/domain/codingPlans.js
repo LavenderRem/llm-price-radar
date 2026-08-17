@@ -1,0 +1,201 @@
+function required(value, path) {
+  if (value === undefined || value === null || value === "") throw new Error(path);
+}
+
+function httpsUrl(value, path) {
+  required(value, path);
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:") throw new Error(path);
+    return url;
+  } catch {
+    throw new Error(path);
+  }
+}
+
+const CODING_SURFACES = new Set(["IDE", "CLI", "Agent"]);
+
+function validDate(value, path) {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error(path);
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
+    throw new Error(path);
+  }
+}
+
+function displayablePriceAmount(price, path) {
+  if (price.status === "unpublished") {
+    if (price.amount !== null) throw new Error(`${path}.amount`);
+    return;
+  }
+  if (!Number.isFinite(price.amount) || price.amount < 0) throw new Error(`${path}.amount`);
+}
+
+function validatePrice(price, path, period) {
+  if (!price || typeof price !== "object") throw new Error(path);
+  required(price.currency, `${path}.currency`);
+  if (price.period !== period) throw new Error(`${path}.period`);
+  displayablePriceAmount(price, path);
+}
+
+function officialPlanHosts(provider, index) {
+  const pricingHost = httpsUrl(
+    provider.officialPricingUrl,
+    `providers[${index}].officialPricingUrl`,
+  ).hostname;
+  if (provider.officialDomains === undefined) return new Set([pricingHost]);
+  if (!Array.isArray(provider.officialDomains) || provider.officialDomains.length === 0) {
+    throw new Error(`providers[${index}].officialDomains`);
+  }
+
+  const hosts = new Set();
+  for (const [domainIndex, domain] of provider.officialDomains.entries()) {
+    if (typeof domain !== "string") throw new Error(`providers[${index}].officialDomains[${domainIndex}]`);
+    try {
+      const url = new URL(`https://${domain}`);
+      if (url.hostname !== domain || url.pathname !== "/" || url.search || url.hash) {
+        throw new Error();
+      }
+      hosts.add(url.hostname);
+    } catch {
+      throw new Error(`providers[${index}].officialDomains[${domainIndex}]`);
+    }
+  }
+  return hosts;
+}
+
+export function validateCodingPlans(plans, providers) {
+  if (!Array.isArray(plans) || plans.length === 0) throw new Error("codingPlans");
+  if (!Array.isArray(providers)) throw new Error("providers");
+
+  const providerHostsById = new Map(providers.map((provider, index) => [
+    provider.id,
+    officialPlanHosts(provider, index),
+  ]));
+  const planIds = new Set();
+  for (const [index, plan] of plans.entries()) {
+    const base = `codingPlans[${index}]`;
+    required(plan.id, `${base}.id`);
+    if (planIds.has(plan.id)) throw new Error(`${base}.id`);
+    planIds.add(plan.id);
+    if (!providerHostsById.has(plan.providerId)) throw new Error(`${base}.providerId`);
+    required(plan.productName, `${base}.productName`);
+    required(plan.planName, `${base}.planName`);
+    if (plan.planType !== "individual-coding") throw new Error(`${base}.planType`);
+    validatePrice(plan.price, `${base}.price`, "month");
+    if (plan.annualPrice !== undefined) validatePrice(plan.annualPrice, `${base}.annualPrice`, "year");
+    required(plan.includedUsage, `${base}.includedUsage`);
+    if (!plan.allowancePolicy || typeof plan.allowancePolicy !== "object") {
+      throw new Error(`${base}.allowancePolicy`);
+    }
+    if (plan.allowancePolicy.status === "unpublished") {
+      // Explicitly retain official non-disclosure instead of estimating an allowance.
+    } else if (plan.allowancePolicy.status !== "published" || !plan.allowancePolicy.label) {
+      throw new Error(`${base}.allowancePolicy`);
+    }
+    if (!Array.isArray(plan.codingSurfaces)
+      || plan.codingSurfaces.length === 0
+      || plan.codingSurfaces.some((surface) => !CODING_SURFACES.has(surface))) {
+      throw new Error(`${base}.codingSurfaces`);
+    }
+    const officialUrl = httpsUrl(plan.officialUrl, `${base}.officialUrl`);
+    if (!providerHostsById.get(plan.providerId).has(officialUrl.hostname)) {
+      throw new Error(`${base}.officialUrl`);
+    }
+    validDate(plan.verifiedAt, `${base}.verifiedAt`);
+    required(plan.officialSummary, `${base}.officialSummary`);
+    const sourceUrl = httpsUrl(plan.sourceUrl, `${base}.sourceUrl`);
+    if (!providerHostsById.get(plan.providerId).has(sourceUrl.hostname)) {
+      throw new Error(`${base}.sourceUrl`);
+    }
+  }
+}
+
+function convertCurrency(amount, fromCurrency, toCurrency, exchangeRates) {
+  const exchangeRate = exchangeRates.find((rate) => (
+    (rate.base ?? rate.baseCurrency) === fromCurrency
+      && (rate.quote ?? rate.quoteCurrency) === toCurrency
+  ));
+  if (exchangeRate) return Number(new Decimal(amount).mul(exchangeRate.rate));
+
+  const inverseRate = exchangeRates.find((rate) => (
+    (rate.base ?? rate.baseCurrency) === toCurrency
+      && (rate.quote ?? rate.quoteCurrency) === fromCurrency
+  ));
+  if (!inverseRate) return null;
+  return Number(new Decimal(amount).div(inverseRate.rate));
+}
+
+export function normalizeCodingPlan(plan, currency, exchangeRates) {
+  const displayPrice = plan.price.amount === null
+    ? null
+    : currency === plan.price.currency
+      ? plan.price.amount
+      : convertCurrency(plan.price.amount, plan.price.currency, currency, exchangeRates);
+  const displayAnnualPrice = plan.annualPrice?.amount === null || plan.annualPrice === undefined
+    ? null
+    : currency === plan.annualPrice.currency
+      ? plan.annualPrice.amount
+      : convertCurrency(plan.annualPrice.amount, plan.annualPrice.currency, currency, exchangeRates);
+  return {
+    ...plan,
+    displayPrice,
+    displayCurrency: currency,
+    displayPriceLabel: displayPrice === null ? "未公开" : undefined,
+    displayAnnualPrice,
+    allowanceLabel: plan.allowancePolicy.status === "unpublished"
+      ? "未公开"
+      : plan.allowancePolicy.label,
+  };
+}
+
+export function filterAndSortCodingPlans(plans, { surfaces = [], freeOnly = false } = {}) {
+  return plans
+    .filter((plan) => !surfaces.length || surfaces.some((surface) => plan.codingSurfaces.includes(surface)))
+    .filter((plan) => !freeOnly || plan.price.amount === 0)
+    .toSorted((left, right) => {
+      const leftAmount = left.price.amount ?? Number.POSITIVE_INFINITY;
+      const rightAmount = right.price.amount ?? Number.POSITIVE_INFINITY;
+      return leftAmount - rightAmount || left.productName.localeCompare(right.productName);
+    });
+}
+
+export function toggleCodingPlanComparison(ids, planId) {
+  if (ids.includes(planId)) return { ids: ids.filter((id) => id !== planId), limitReached: false };
+  if (ids.length >= 3) return { ids, limitReached: true };
+  return { ids: [...ids, planId], limitReached: false };
+}
+
+export function sanitizeCodingPlanComparisonIds(ids, plans) {
+  const planIds = new Set(plans.map((plan) => plan.id));
+  const seen = new Set();
+  const result = [];
+  let invalidCount = 0;
+  let overflowCount = 0;
+  let duplicatesRemoved = 0;
+
+  for (const id of ids) {
+    if (!planIds.has(id)) {
+      invalidCount += 1;
+    } else if (seen.has(id)) {
+      duplicatesRemoved += 1;
+    } else {
+      seen.add(id);
+      if (result.length >= 3) {
+        overflowCount += 1;
+      } else {
+        result.push(id);
+      }
+    }
+  }
+
+  return {
+    ids: result,
+    invalidCount,
+    overflowCount,
+    duplicatesRemoved,
+    normalizedChanged: invalidCount + overflowCount + duplicatesRemoved > 0,
+  };
+}
+import Decimal from "decimal.js";

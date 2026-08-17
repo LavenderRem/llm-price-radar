@@ -1,6 +1,8 @@
 {
   "checkedAt": "2026-08-13T03:28:13.210Z",
   "sourceScope": "providers[].officialPricingUrl",
+  "codingPlanPageSources": {},
+  "codingPlanPriceSources": {},
   "sources": {
     "https://developers.openai.com/api/docs/pricing": "2f76272e777403887b5463653d989ba6f9c393bc9ea01486e37c995c770130fc",
     "https://docs.anthropic.com/en/docs/about-claude/pricing": "7e1c613e19e58898f3bde1ed47f419413cb48253bd9384fcd7bc1b24a4737191",

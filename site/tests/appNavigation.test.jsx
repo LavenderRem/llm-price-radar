@@ -38,6 +38,12 @@ describe("App", () => {
     expect(updates).toHaveAttribute("aria-current", "page");
   });
 
+  it("显示编程套餐导航入口", () => {
+    render(<App />);
+
+    expect(screen.getByRole("button", { name: "编程套餐" })).toBeInTheDocument();
+  });
+
   it("打开模型详情后展示计费信息，关闭时恢复详情按钮焦点", async () => {
     const user = userEvent.setup();
     render(<App />);

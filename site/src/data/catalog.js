@@ -1,10 +1,19 @@
 export const providers = [
   { id: "openai", name: "OpenAI", billingCurrency: "USD", officialPricingUrl: "https://developers.openai.com/api/docs/pricing" },
-  { id: "anthropic", name: "Anthropic", billingCurrency: "USD", officialPricingUrl: "https://docs.anthropic.com/en/docs/about-claude/pricing" },
+  {
+    id: "anthropic",
+    name: "Anthropic",
+    billingCurrency: "USD",
+    officialPricingUrl: "https://docs.anthropic.com/en/docs/about-claude/pricing",
+    officialDomains: ["docs.anthropic.com", "support.claude.com"],
+  },
   { id: "google", name: "Google", billingCurrency: "USD", officialPricingUrl: "https://ai.google.dev/gemini-api/docs/pricing" },
   { id: "deepseek", name: "DeepSeek", billingCurrency: "CNY", officialPricingUrl: "https://api-docs.deepseek.com/quick_start/pricing" },
   { id: "aliyun", name: "阿里云百炼", billingCurrency: "CNY", officialPricingUrl: "https://help.aliyun.com/zh/model-studio/model-pricing" },
   { id: "zhipu", name: "智谱开放平台", billingCurrency: "CNY", officialPricingUrl: "https://open.bigmodel.cn/pricing", pricingCheckMode: "manual" },
+  { id: "cursor", name: "Cursor", billingCurrency: "USD", officialPricingUrl: "https://cursor.com/pricing", catalogScope: "coding-plans-only" },
+  { id: "trae", name: "TRAE", billingCurrency: "USD", officialPricingUrl: "https://www.trae.ai/pricing", catalogScope: "coding-plans-only" },
+  { id: "codebuddy", name: "腾讯 CodeBuddy", billingCurrency: "CNY", officialPricingUrl: "https://copilot.tencent.com/pricing", catalogScope: "coding-plans-only" },
 ];
 
 export function defineModel(model) {
