@@ -16,7 +16,7 @@ describe("App", () => {
     render(<App />);
 
     expect(screen.getByText(/价格数据核验于 2026-08-06/)).toBeInTheDocument();
-    expect(screen.getByText(/官方来源检查于 2026-08-13/)).toBeInTheDocument();
+    expect(screen.getByText(/官方来源检查于 2026-08-17/)).toBeInTheDocument();
   });
 
   it("通过键盘切换三个导航视图的活动态", async () => {
