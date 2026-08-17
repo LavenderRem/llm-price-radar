@@ -2,13 +2,13 @@
 
 检查对象：目录中每个服务商的官方定价页，每个服务商每天检查一次。
 
-检查时间：2026-08-13T03:28:13.210Z
+检查时间：2026-08-17T02:21:08.456Z
 
-| 服务商 | 官方定价页 | 内容指纹 | 状态 |
+| 服务商 | 官方定价页 | 价格信号指纹 | 结果 |
 | --- | --- | --- | --- |
-| OpenAI | https://developers.openai.com/api/docs/pricing | 2f76272e777403887b5463653d989ba6f9c393bc9ea01486e37c995c770130fc | 已变化 |
-| Anthropic | https://docs.anthropic.com/en/docs/about-claude/pricing | 7e1c613e19e58898f3bde1ed47f419413cb48253bd9384fcd7bc1b24a4737191 | 已变化 |
-| Google | https://ai.google.dev/gemini-api/docs/pricing | 22da4e94c4ae0bc7efdaaefe20475334dde83aa76cdd4ce2e0550c7943edb5ce | 已变化 |
-| DeepSeek | https://api-docs.deepseek.com/quick_start/pricing | 3af5e5d6992a4e26709ed37f02d9bfbc46ee92dc825e6588404728419f41ce71 | 已变化 |
-| 阿里云百炼 | https://help.aliyun.com/zh/model-studio/model-pricing | 87f963f2f2ce14ca6097204f8d6a2dc051ab46261cbc28483d7a515326acd593 | 已变化 |
-| 智谱开放平台 | https://open.bigmodel.cn/ | 835990988937eb315409380ac75f42831931ea2d30d04f7987020bf110ccf20a | 已变化 |
+| OpenAI | https://developers.openai.com/api/docs/pricing | 322b6a0ed268d7dd95326ed4a1c8ae0bfcdf9b304361496f758ef472c2d0dec8 | 价格信号基线已建立 |
+| Anthropic | https://docs.anthropic.com/en/docs/about-claude/pricing | 16f96b714d8cef1ea543cec4232c7ef0da4d7aee9f9375b7419c5862d86da6ea | 价格信号基线已建立 |
+| Google | https://ai.google.dev/gemini-api/docs/pricing | 0cda374d8e300f44690a70135b856caf4b9834b9c5f812fde1d5930448b262ad | 价格信号基线已建立 |
+| DeepSeek | https://api-docs.deepseek.com/quick_start/pricing | efb1bea3556351e705c3437bc186cf2406361038feac8fc2d70871eeb6dda51f | 价格信号基线已建立 |
+| 阿里云百炼 | https://help.aliyun.com/zh/model-studio/model-pricing | a6b3dbb87b4aae39c7b7c1df3992b8e29d5b58bc96f3e490536b876d11123316 | 价格信号基线已建立 |
+| 智谱开放平台 | https://open.bigmodel.cn/pricing | undefined | 需人工核对（定价页由客户端渲染） |
