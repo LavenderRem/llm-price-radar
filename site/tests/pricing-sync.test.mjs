@@ -587,6 +587,26 @@ test("checkPricing identifies the provider when a source contains no pricing evi
   });
 });
 
+test("checkPricing retries a source when the first response has no pricing evidence", async () => {
+  await withTemporaryPaths(async ({ statePath, reportPath }) => {
+    let attempts = 0;
+    const result = await checkPricing({
+      dryRun: true,
+      fetchImpl: async () => ({
+        ok: true,
+        text: async () => (++attempts === 1 ? "welcome" : "Input $2.00 per 1M tokens"),
+      }),
+      sourceEntries: [{ providerId: "openai", providerName: "OpenAI", sourceUrl: "https://developers.openai.com/api/docs/pricing" }],
+      codingPlanEntries: [],
+      statePath,
+      reportPath,
+    });
+
+    assert.equal(attempts, 2);
+    assert.equal(result.entries[0].providerId, "openai");
+  });
+});
+
 test("checkPricing reports client-rendered pricing sources for manual review without fetching them", async () => {
   await withTemporaryPaths(async ({ statePath, reportPath }) => {
     const result = await checkPricing({

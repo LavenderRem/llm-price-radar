@@ -144,12 +144,17 @@ export async function checkPricing({
   const fetchPricingEvidence = async (entry) => {
     if (!evidenceBySourceUrl.has(entry.sourceUrl)) {
       evidenceBySourceUrl.set(entry.sourceUrl, (async () => {
-        const content = await fetchOfficialSource(entry.sourceUrl, fetchImpl, { timeoutMs });
         let priceEvidence;
-        try {
-          priceEvidence = extractPricingEvidence(content);
-        } catch (error) {
-          throw new Error(`${entry.providerId}: ${error.message}`);
+        let content;
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+          content = await fetchOfficialSource(entry.sourceUrl, fetchImpl, { timeoutMs });
+          assertSourceResult({ ...entry, content });
+          try {
+            priceEvidence = extractPricingEvidence(content);
+            break;
+          } catch (error) {
+            if (attempt === 1) throw new Error(`${entry.providerId}: ${error.message}`);
+          }
         }
         return {
           content,
