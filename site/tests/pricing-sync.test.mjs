@@ -121,6 +121,16 @@ test("every provider's daily source points to its declared pricing page", () => 
   }
 });
 
+test("Anthropic pricing sources use the current canonical docs host", () => {
+  const canonicalUrl = "https://platform.claude.com/docs/en/about-claude/pricing";
+  const anthropic = providers.find((provider) => provider.id === "anthropic");
+
+  assert.equal(anthropic.officialPricingUrl, canonicalUrl);
+  for (const model of models.filter((item) => item.providerId === "anthropic")) {
+    for (const price of model.pricing) assert.equal(price.sourceUrl, canonicalUrl);
+  }
+});
+
 test("fetchOfficialSource returns fixture content for a successful HTTPS response", async () => {
   const content = await readFile(fixturePath, "utf8");
   const result = await fetchOfficialSource("https://developers.openai.com/api/docs/pricing", async () => ({

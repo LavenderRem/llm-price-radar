@@ -4,8 +4,8 @@ export const providers = [
     id: "anthropic",
     name: "Anthropic",
     billingCurrency: "USD",
-    officialPricingUrl: "https://docs.anthropic.com/en/docs/about-claude/pricing",
-    officialDomains: ["docs.anthropic.com", "support.claude.com"],
+    officialPricingUrl: "https://platform.claude.com/docs/en/about-claude/pricing",
+    officialDomains: ["platform.claude.com", "support.claude.com"],
   },
   { id: "google", name: "Google", billingCurrency: "USD", officialPricingUrl: "https://ai.google.dev/gemini-api/docs/pricing" },
   { id: "deepseek", name: "DeepSeek", billingCurrency: "CNY", officialPricingUrl: "https://api-docs.deepseek.com/quick_start/pricing" },
@@ -151,7 +151,7 @@ export const models = [
         "cacheWrite 表示 5 分钟缓存写入；1 小时缓存写入为 10 USD/MTok",
         "Prompt caching 倍率可与 Batch API 的 50% 折扣叠加",
       ],
-      sourceUrl: "https://docs.anthropic.com/en/docs/about-claude/pricing",
+      sourceUrl: "https://platform.claude.com/docs/en/about-claude/pricing",
     }],
   }),
   defineModel({
@@ -179,7 +179,7 @@ export const models = [
         "cacheWrite 表示 5 分钟缓存写入；1 小时缓存写入为 4 USD/MTok",
         "Prompt caching 倍率可与 Batch API 的 50% 折扣叠加",
       ],
-      sourceUrl: "https://docs.anthropic.com/en/docs/about-claude/pricing",
+      sourceUrl: "https://platform.claude.com/docs/en/about-claude/pricing",
     }],
   }),
   defineModel({
