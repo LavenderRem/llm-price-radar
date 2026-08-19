@@ -198,6 +198,23 @@ describe("FilterBar", () => {
     expect(onChange).toHaveBeenCalledWith({ providers: ["openai"] });
   });
 
+  it("隐藏仅存在于编程套餐目录的服务商按钮", () => {
+    render(
+      <FilterBar
+        state={{ query: "", providers: [], capabilities: [], minContext: 0, hasCache: false, hasBatch: false }}
+        providers={[
+          { id: "openai", name: "OpenAI" },
+          { id: "cursor", name: "Cursor", catalogScope: "coding-plans-only" },
+        ]}
+        onChange={() => {}}
+        onClear={() => {}}
+      />,
+    );
+
+    expect(screen.getByRole("checkbox", { name: "OpenAI" })).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: "Cursor" })).not.toBeInTheDocument();
+  });
+
   it("移动筛选面板支持命名、焦点管理和 Escape 关闭", async () => {
     const user = userEvent.setup();
     render(

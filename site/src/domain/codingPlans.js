@@ -150,8 +150,9 @@ export function normalizeCodingPlan(plan, currency, exchangeRates) {
   };
 }
 
-export function filterAndSortCodingPlans(plans, { surfaces = [], freeOnly = false } = {}) {
+export function filterAndSortCodingPlans(plans, { providerId = "", surfaces = [], freeOnly = false } = {}) {
   return plans
+    .filter((plan) => !providerId || plan.providerId === providerId)
     .filter((plan) => !surfaces.length || surfaces.some((surface) => plan.codingSurfaces.includes(surface)))
     .filter((plan) => !freeOnly || plan.price.amount === 0)
     .toSorted((left, right) => {

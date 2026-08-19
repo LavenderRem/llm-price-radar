@@ -7,6 +7,10 @@ import {
 
 const filters = [
   { id: "all", label: "全部" },
+  { id: "cursor", label: "Cursor", providerId: "cursor" },
+  { id: "anthropic", label: "Claude Code", providerId: "anthropic" },
+  { id: "trae", label: "TRAE IDE", providerId: "trae" },
+  { id: "codebuddy", label: "腾讯 CodeBuddy", providerId: "codebuddy" },
   { id: "ide", label: "IDE", surfaces: ["IDE"] },
   { id: "cli-agent", label: "CLI / Agent", surfaces: ["CLI", "Agent"] },
   { id: "free", label: "免费套餐", freeOnly: true },

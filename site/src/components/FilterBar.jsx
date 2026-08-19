@@ -19,6 +19,7 @@ function toggle(list, value) {
 }
 
 export function FilterBar({ state, providers, onChange, onClear }) {
+  const modelProviders = providers.filter((provider) => provider.catalogScope !== "coding-plans-only");
   const [query, setQuery] = useState(state.query);
   const [filterOpen, setFilterOpen] = useState(false);
   const filterTriggerRef = useRef(null);
@@ -128,7 +129,7 @@ export function FilterBar({ state, providers, onChange, onClear }) {
             >
               全部
             </button>
-            {providers.map((provider) => (
+            {modelProviders.map((provider) => (
               <label className="provider-icon-option" key={provider.id} title={provider.name}>
                 <input
                   type="checkbox"

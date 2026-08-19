@@ -132,6 +132,16 @@ describe("coding plan domain logic", () => {
       .toEqual(["free-agent", "free-ide"]);
   });
 
+  it("filters coding plans by provider", () => {
+    const plans = [
+      { ...validPlan, id: "cursor-pro", providerId: "cursor", productName: "Cursor" },
+      { ...validPlan, id: "trae-pro", providerId: "trae", productName: "TRAE IDE" },
+    ];
+
+    expect(filterAndSortCodingPlans(plans, { providerId: "cursor" }).map((plan) => plan.id))
+      .toEqual(["cursor-pro"]);
+  });
+
   it("toggles up to three plan comparisons and sanitizes duplicates and unknown plans", () => {
     expect(toggleCodingPlanComparison(["a", "b", "c"], "d")).toEqual({
       ids: ["a", "b", "c"],

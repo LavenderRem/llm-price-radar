@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { App } from "../src/App.jsx";
@@ -14,6 +14,19 @@ describe("CodingPlansView", () => {
     expect(screen.getByRole("heading", { name: "个人编程套餐" })).toBeInTheDocument();
     expect(screen.getAllByText("IDE").length).toBeGreaterThan(0);
     expect(screen.queryByText("CLI / 编程 Agent 专属示例")).not.toBeInTheDocument();
+  });
+
+  it("filters coding plans by provider", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "编程套餐" }));
+    await user.click(screen.getByRole("button", { name: "Cursor" }));
+
+    const table = within(screen.getByRole("table"));
+    expect(table.getAllByText("Cursor").length).toBeGreaterThan(0);
+    expect(table.queryByText("TRAE IDE")).not.toBeInTheDocument();
+    expect(table.queryByText("腾讯 CodeBuddy")).not.toBeInTheDocument();
   });
 
   it("keeps the selected display currency after opening coding plans", async () => {
