@@ -68,6 +68,13 @@ describe("coding plans catalog", () => {
     }
   });
 
+  it("uses the official Claude plan page for Claude Code price checks", () => {
+    const claudePlans = codingPlans.filter((plan) => plan.providerId === "anthropic");
+
+    expect(claudePlans).not.toHaveLength(0);
+    expect(claudePlans.every((plan) => plan.sourceUrl === plan.officialUrl)).toBe(true);
+  });
+
   it("rejects an unknown provider, non-official sources, a missing coding surface, and displayable general chat", () => {
     expect(() => validateCodingPlans([{ ...validPlan, providerId: "unknown" }], providers))
       .toThrow("codingPlans[0].providerId");

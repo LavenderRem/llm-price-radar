@@ -63,8 +63,19 @@ export function fingerprintCodingPlanFacts(plan) {
   }));
 }
 
+function extractModernRouterData(content) {
+  const match = content.match(/<script\b(?=[^>]*\bid=["']__MODERN_ROUTER_DATA__["'])[^>]*>([\s\S]*?)<\/script>/i);
+  if (!match) return "";
+
+  try {
+    return JSON.stringify(JSON.parse(match[1]));
+  } catch {
+    return "";
+  }
+}
+
 export function extractPricingEvidence(content) {
-  const visibleText = content
+  const visibleText = `${content
     .replace(/(\d+(?:[.,]\d+)?)<\/[^>]+>\s*<[^>]+>(元|美元|人民币)/gi, "$1 $2")
     .replace(/<!--[\s\S]*?-->/g, " ")
     .replace(/<(script|style|noscript)\b[^>]*>[\s\S]*?<\/\1>/gi, " ")
@@ -72,7 +83,7 @@ export function extractPricingEvidence(content) {
     .replace(/&nbsp;/gi, " ")
     .replace(/&amp;/gi, "&")
     .replace(/&(?:#0*36|#x0*24|dollar);/gi, "$")
-    .replace(/&(?:#0*165|#x0*a5|yen);/gi, "¥");
+    .replace(/&(?:#0*165|#x0*a5|yen);/gi, "¥")}\n${extractModernRouterData(content)}`;
 
   const normalizedVisibleText = visibleText
     .replace(/(\d+(?:[.,]\d+)?)\s*\n+\s*(元|美元|人民币)/gi, "$1 $2");

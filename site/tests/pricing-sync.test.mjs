@@ -43,6 +43,17 @@ test("pricing evidence keeps a price when an empty layout span separates its cur
   );
 });
 
+test("pricing evidence reads TRAE prices from its official router data", () => {
+  const content = [
+    '<main><div class="loading">Loading</div></main>',
+    '<script>const analyticsPrice = "$999";</script>',
+    '<script type="application/json" id="__MODERN_ROUTER_DATA__">{"loaderData":{"pricing":{"products":[{"name":"Pro","display_price":"$10"}]}}}</script>',
+  ].join("");
+
+  assert.match(extractPricingEvidence(content), /\$10/);
+  assert.doesNotMatch(extractPricingEvidence(content), /\$999/);
+});
+
 test("coding plan catalog fingerprint ignores copy but changes for price facts", () => {
   const current = {
     id: "cursor-pro",

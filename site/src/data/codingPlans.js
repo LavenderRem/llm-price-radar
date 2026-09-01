@@ -1,7 +1,6 @@
 const verifiedAt = "2026-08-14";
 const pricingUrl = "https://cursor.com/pricing";
 const claudePlanUrl = "https://support.claude.com/en/articles/11049762-choose-a-claude-plan";
-const claudeCodeUrl = "https://support.claude.com/en/articles/11145838-use-claude-code-with-your-pro-or-max-plan";
 const traePricingUrl = "https://www.trae.ai/pricing";
 const codeBuddyPricingUrl = "https://copilot.tencent.com/pricing";
 
@@ -80,7 +79,7 @@ export const codingPlans = [
     officialUrl: claudePlanUrl,
     verifiedAt,
     officialSummary: "Claude Pro 包含 Claude Code；终端和支持的 IDE 用量与 Claude 共享。",
-    sourceUrl: claudeCodeUrl,
+    sourceUrl: claudePlanUrl,
   },
   {
     id: "trae-free",
@@ -110,7 +109,7 @@ export const codingPlans = [
     officialUrl: claudePlanUrl,
     verifiedAt,
     officialSummary: "Claude Max 5x 包含 Claude Code；用量与 Claude 共享。",
-    sourceUrl: claudeCodeUrl,
+    sourceUrl: claudePlanUrl,
   },
   {
     id: "claude-code-max-20x",
@@ -125,7 +124,7 @@ export const codingPlans = [
     officialUrl: claudePlanUrl,
     verifiedAt,
     officialSummary: "Claude Max 20x 包含 Claude Code；用量与 Claude 共享。",
-    sourceUrl: claudeCodeUrl,
+    sourceUrl: claudePlanUrl,
   },
   {
     id: "trae-lite",
