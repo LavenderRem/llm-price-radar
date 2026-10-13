@@ -44,8 +44,8 @@ describe("coding plans catalog", () => {
     const claudePlan = {
       ...validPlan,
       providerId: "anthropic",
-      officialUrl: "https://support.claude.com/en/articles/11049762-choose-a-claude-plan",
-      sourceUrl: "https://support.claude.com/en/articles/11049762-choose-a-claude-plan",
+      officialUrl: "https://claude.com/pricing",
+      sourceUrl: "https://claude.com/pricing",
     };
 
     expect(() => validateCodingPlans([claudePlan], providers)).not.toThrow();

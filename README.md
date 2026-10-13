@@ -11,7 +11,7 @@ GitHub Actions 每日 UTC 01:00（北京时间 09:00）抓取目录中的官方�
 
 ## 个人编程套餐核验边界
 
-个人编程套餐只引用各产品的官方来源：[Cursor Pricing](https://cursor.com/pricing)、[Claude 套餐说明](https://support.claude.com/en/articles/11049762-choose-a-claude-plan)、[Claude Code 套餐说明](https://support.claude.com/en/articles/11145838-use-claude-code-with-your-pro-or-max-plan)、[TRAE Pricing](https://www.trae.ai/pricing) 和 [腾讯 CodeBuddy 定价](https://copilot.tencent.com/pricing)。
+个人编程套餐只引用各产品的官方来源：[Cursor Pricing](https://cursor.com/pricing)、[Claude 官方定价](https://claude.com/pricing)、[Claude Code 套餐说明](https://support.claude.com/en/articles/11145838-use-claude-code-with-your-pro-or-max-plan)、[TRAE Pricing](https://www.trae.ai/pricing) 和 [腾讯 CodeBuddy 定价](https://copilot.tencent.com/pricing)。
 
 `site/src/data/codingPlans.js` 中的 `verifiedAt` 是人工核验日期；月费、计费周期、包含用量、额度/超额规则、编程入口和官方链接均须在人工复核后通过 PR 更新。对于官网未公开展示的价格、计费周期或额度，页面统一显示“未公开”，不会根据营销文案、相邻档位或动态页面文本推算。
 

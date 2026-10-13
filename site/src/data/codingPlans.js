@@ -1,6 +1,6 @@
 const verifiedAt = "2026-08-14";
 const pricingUrl = "https://cursor.com/pricing";
-const claudePlanUrl = "https://support.claude.com/en/articles/11049762-choose-a-claude-plan";
+const claudePlanUrl = "https://claude.com/pricing";
 const traePricingUrl = "https://www.trae.ai/pricing";
 const codeBuddyPricingUrl = "https://copilot.tencent.com/pricing";
 

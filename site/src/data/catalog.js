@@ -5,7 +5,7 @@ export const providers = [
     name: "Anthropic",
     billingCurrency: "USD",
     officialPricingUrl: "https://platform.claude.com/docs/en/about-claude/pricing",
-    officialDomains: ["platform.claude.com", "support.claude.com"],
+    officialDomains: ["platform.claude.com", "support.claude.com", "claude.com"],
   },
   { id: "google", name: "Google", billingCurrency: "USD", officialPricingUrl: "https://ai.google.dev/gemini-api/docs/pricing" },
   { id: "deepseek", name: "DeepSeek", billingCurrency: "CNY", officialPricingUrl: "https://api-docs.deepseek.com/quick_start/pricing" },
