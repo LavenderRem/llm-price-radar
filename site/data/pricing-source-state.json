@@ -1,28 +1,28 @@
 {
-  "checkedAt": "2026-10-13T09:27:26.799Z",
+  "checkedAt": "2026-11-14T07:28:29.717Z",
   "pageSources": {
-    "https://developers.openai.com/api/docs/pricing": "a82a6a2d515397bccb21d70f32b50a05bf5e9862437dabdc46044bd227e8fb37",
-    "https://platform.claude.com/docs/en/about-claude/pricing": "68343d60c3b09bcba8a4a46d72d84bd840a941c2018e2996984053f8659bf2b5",
-    "https://ai.google.dev/gemini-api/docs/pricing": "deb138eed283b3a0b92d38c39614f3330a9ba34442fc4dff124e3c59f45f6f24",
-    "https://api-docs.deepseek.com/quick_start/pricing": "210f102275ccf1a6542f08a3bc9e4b4c7c83278cb74b35217bffa112df6363b2",
-    "https://help.aliyun.com/zh/model-studio/model-pricing": "67db6338b4c62199d8808ac6a1dd5aada61571674dea296b1fbad535f28dd706"
+    "https://developers.openai.com/api/docs/pricing": "099c9496f75ffe6f08a57f30b007c5abf79f6eb26ecba5ddecf50ffdf4ec8028",
+    "https://platform.claude.com/docs/en/about-claude/pricing": "af125d81eb1acb0b1589a6988ba6f3970251b24f142a94b2b7fe4d592ec26b11",
+    "https://ai.google.dev/gemini-api/docs/pricing": "2185b4ebe9b296fe5d6827fba6b9879ddef5c80ca7e41e7cedfe54d3e340085b",
+    "https://api-docs.deepseek.com/quick_start/pricing": "5126b5f69e78f6dacb0a8bfc91e0cf0b705416b0b918b12e1f45f66b122e7741",
+    "https://help.aliyun.com/zh/model-studio/model-pricing": "a0534540e5384de1cff4d49879ea0595b2fa7c9c957ad0f96fc78e7e31e0ba84"
   },
   "priceSources": {
-    "https://developers.openai.com/api/docs/pricing": "371ae71c38aaca51009237e3e6d1f8235e114c52a36f6c3fcda563abd824938c",
-    "https://platform.claude.com/docs/en/about-claude/pricing": "38596402d005591f7918c0c7dd608b37477ef71afeb49df5ba4d8df62abc643c",
-    "https://ai.google.dev/gemini-api/docs/pricing": "2e15d8720e341566fd1a42b7179b59446a39123fe99d50bd21a4dbfae60776e2",
-    "https://api-docs.deepseek.com/quick_start/pricing": "ea4b9de02200e9bc2f5ec9a9aca27ae17df3488180eabc421e2889d965cf5dda",
-    "https://help.aliyun.com/zh/model-studio/model-pricing": "53a3212bf610b3da6b6171284ffa319c99ccabeb8f226d40d6ab7cb5c37d2d5b"
+    "https://developers.openai.com/api/docs/pricing": "1d23338595ddaa931d82e409c910248b1cb94e1c0aebf8826a91ca85f28a3e35",
+    "https://platform.claude.com/docs/en/about-claude/pricing": "8d883876802d636fbde79560bcca229abf9f1ec92199e07ff8866da60d9e7435",
+    "https://ai.google.dev/gemini-api/docs/pricing": "fba80fa834002ab7c8ba2da8e666fbe1544eae821bf60466b31ff23e78dc81ea",
+    "https://api-docs.deepseek.com/quick_start/pricing": "c815141f38fb45b12df6a562f5c307cb7e49d36f96fc55104e8ca11383dfb604",
+    "https://help.aliyun.com/zh/model-studio/model-pricing": "208ebff88cc0e0e49af237a5b93c5ef4d146eab108db0e23a18f79a3dc20bccf"
   },
   "codingPlanPageSources": {
-    "https://cursor.com/pricing": "46382ca1922e27fe7818c9c86b1a2569e55bd0107089cec5c178e3723a0ae952",
-    "https://claude.com/pricing": "f53628d7e7820fa2e49dff5df58a1911cd37a5b243438a85909ff9821dff148e",
-    "https://www.trae.ai/pricing": "f5f6213eb1085ba49a057b8a5f30228f50d450366e4ef89be39ac1e12fdeb928"
+    "https://cursor.com/pricing": "729b5c3b764c27d9782a669559f3d583de722c7ebb7912705a68a08557e36d4b",
+    "https://claude.com/pricing": "5fc71707d268bffc944cf25db82112e86d59a4c163fc62391b11fd7435fef90f",
+    "https://www.trae.ai/pricing": "7a463d1ce49e70eef7a6193c74691153ff692b65d22c37ce6338da46e2526139"
   },
   "codingPlanPriceSources": {
     "https://cursor.com/pricing": "ad71e5ba60c2bf125f69e400944d5d9f345d9f01c2622a33368a50cb20a1febc",
-    "https://claude.com/pricing": "0937ae624647af765fe93b7cac0e733ec89c5443df6b30871348f660a43e0cc8",
-    "https://www.trae.ai/pricing": "dce31b5fbe13ec0911fc61f9ab59c13d812119ac755cfc721e9f874600646150"
+    "https://claude.com/pricing": "7604eef95a4a4f1a8d7724999f069e901f92beb4a90be501b6f9a9c4d04b4885",
+    "https://www.trae.ai/pricing": "fb5027ead687c110e69d24ecef107815cca72d04e5770e270ad3087e6ef24ef4"
   },
   "sourceScope": "providers[].officialPricingUrl"
 }
